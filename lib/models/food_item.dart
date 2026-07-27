@@ -45,14 +45,18 @@ class FoodItem {
 
   factory FoodItem.fromJson(Map<String, dynamic> json) {
     return FoodItem(
-      id: json['id'] as String,
-      name: json['name'] as String,
-      price: (json['price'] as num).toDouble(),
-      description: json['description'] as String,
-      imageUrl: (json['image_url'] as String?) ?? (json['imageUrl'] as String? ?? ''),
-      category: json['category'] as String,
+      id: json['id']?.toString() ?? '',
+      name: json['name']?.toString() ?? 'بدون اسم',
+      price: (json['price'] is num)
+          ? (json['price'] as num).toDouble()
+          : (double.tryParse(json['price']?.toString() ?? '0') ?? 0.0),
+      description: json['description']?.toString() ?? '',
+      imageUrl: json['image_url']?.toString() ?? json['imageUrl']?.toString() ?? '',
+      category: json['category']?.toString() ?? '',
       isAvailable: (json['is_available'] as bool?) ?? (json['isAvailable'] as bool?) ?? true,
-      sortOrder: (json['sort_order'] as int?) ?? (json['sortOrder'] as int?) ?? 0,
+      sortOrder: (json['sort_order'] is num)
+          ? (json['sort_order'] as num).toInt()
+          : (int.tryParse(json['sort_order']?.toString() ?? '0') ?? 0),
     );
   }
 

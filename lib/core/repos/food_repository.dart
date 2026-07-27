@@ -19,6 +19,21 @@ class FoodRepository {
   SupabaseClient? get _c => SupabaseManager.client;
   SupabaseClient? get _svc => SupabaseManager.serviceClient;
 
+  List<FoodItem> _parseItems(List<dynamic>? rows) {
+    if (rows == null) return [];
+    final List<FoodItem> items = [];
+    for (var row in rows) {
+      try {
+        if (row is Map) {
+          items.add(FoodItem.fromJson(Map<String, dynamic>.from(row)));
+        }
+      } catch (e) {
+        print('⚠️ Error parsing FoodItem row on iOS/Android: $e | row: $row');
+      }
+    }
+    return items;
+  }
+
   List<FoodItem> _filterByCategory(List<FoodItem> items, String category) {
     if (category.isEmpty || category == '__ALL__') return items;
     final queries = category
@@ -52,9 +67,7 @@ class FoodRepository {
       if (cachedData != null) {
         try {
           final List<dynamic> decoded = cachedData;
-          final items = decoded
-              .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
-              .toList();
+          final items = _parseItems(decoded);
           return _filterByCategory(items, category);
         } catch (e) {
           print('⚠️ Error parsing cache for $category: $e');
@@ -88,7 +101,7 @@ class FoodRepository {
       try {
         print('🔄 Fetching all items via Service Client...');
         res = await svc.from(table).select().order('created_at', ascending: false);
-        print('✅ Service Client success: ${res.length} items');
+        print('✅ Service Client success: ${res?.length ?? 0} items');
       } catch (e) {
         print('⚠️ Service client failed to fetch all items: $e');
       }
@@ -99,7 +112,7 @@ class FoodRepository {
       try {
         print('🔄 Fetching all items via Anon Client...');
         res = await anon.from(table).select().order('created_at', ascending: false);
-        print('✅ Anon Client success: ${res.length} items');
+        print('✅ Anon Client success: ${res?.length ?? 0} items');
       } catch (e) {
         print('❌ Anon client failed to fetch all items: $e');
       }
@@ -111,9 +124,7 @@ class FoodRepository {
       if (box != null) {
         await box.put('__ALL__', res);
       }
-      return (res)
-          .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
-          .toList();
+      return _parseItems(res);
     }
 
     // 4. Fallback to Cache if Network Failed
@@ -124,9 +135,7 @@ class FoodRepository {
       if (cached != null) {
         try {
           final List<dynamic> decoded = cached;
-          return decoded
-              .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
-              .toList();
+          return _parseItems(decoded);
         } catch (e) {
           print('❌ Cache parse error: $e');
         }
@@ -161,10 +170,7 @@ class FoodRepository {
       await box.put('__ALL__', res);
     }
 
-    final allItems = (res as List)
-        .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
-        .toList();
-
+    final allItems = _parseItems(res as List?);
     final filtered = _filterByCategory(allItems, category);
     if (box != null && category.isNotEmpty && category != '__ALL__') {
       await box.put(category, filtered.map((e) => e.toJson()).toList());
@@ -185,9 +191,7 @@ class FoodRepository {
           if (box != null) {
             box.put('__ALL__', rows);
           }
-          final allItems = rows
-              .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
-              .toList();
+          final allItems = _parseItems(rows);
           final filtered = _filterByCategory(allItems, category);
           if (box != null && category.isNotEmpty && category != '__ALL__') {
             box.put(category, filtered.map((e) => e.toJson()).toList());
@@ -206,9 +210,7 @@ class FoodRepository {
         if (cachedData != null) {
           try {
             final List<dynamic> decoded = cachedData;
-            final items = decoded
-                .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
-                .toList();
+            final items = _parseItems(decoded);
             final filtered = _filterByCategory(items, category);
             if (filtered.isNotEmpty) {
               controller.add(filtered);

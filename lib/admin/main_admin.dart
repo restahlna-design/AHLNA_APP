@@ -15,14 +15,15 @@ import 'screens/admin_offers_screen.dart';
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // Initialize Hive
+  // Initialize Hive and clear old cache
   await Hive.initFlutter();
   try {
-    await Hive.openBox('food_cache');
-    // await Hive.openBox('offers_cache'); // Uncomment if needed later
+    final b1 = await Hive.openBox('food_cache');
+    final b2 = await Hive.openBox('food_cache_v2');
+    await b1.clear();
+    await b2.clear();
   } catch (e) {
     print('⚠️ Hive initialization failed (likely file lock): $e');
-    // Attempt to delete lock file if possible or just proceed without cache
   }
 
   await SupabaseManager.init();

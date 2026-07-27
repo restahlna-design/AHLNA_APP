@@ -15,11 +15,15 @@ class CategoryModel {
 
   factory CategoryModel.fromJson(Map<String, dynamic> json) {
     return CategoryModel(
-      id: json['id'] as int,
-      nameEn: (json['name_en'] as String?) ?? (json['name'] as String? ?? ''),
-      nameAr: json['name_ar'] as String,
-      parentId: json['parent_id'] as int?,
-      imageUrl: json['image_url'] as String?,
+      id: (json['id'] is num)
+          ? (json['id'] as num).toInt()
+          : (int.tryParse(json['id']?.toString() ?? '0') ?? 0),
+      nameEn: json['name_en']?.toString() ?? json['name']?.toString() ?? '',
+      nameAr: json['name_ar']?.toString() ?? '',
+      parentId: (json['parent_id'] is num)
+          ? (json['parent_id'] as num).toInt()
+          : (int.tryParse(json['parent_id']?.toString() ?? '')),
+      imageUrl: json['image_url']?.toString(),
     );
   }
 
