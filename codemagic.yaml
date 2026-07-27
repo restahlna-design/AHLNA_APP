@@ -29,7 +29,11 @@ workflows:
           
       - name: iOS Dual Unsigned Build (Manual Packaging)
         script: |
-          set -euo pipefail
+          set -eo pipefail
+          export SUPABASE_URL="${SUPABASE_URL:-}"
+          export SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}"
+          export SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-}"
+          export CM_EXPORT_DIR="${CM_EXPORT_DIR:-build/ios/ipa}"
           echo "== Triggering dual iOS build (Manual Packaging) at $(date) =="
 
           echo "== Clean build artifacts =="
@@ -153,9 +157,9 @@ workflows:
           echo "== Build Customer iOS (unsigned) =="
           flutter build ios --release --no-codesign \
             --target lib/main.dart \
-            --dart-define=SUPABASE_URL=$SUPABASE_URL \
-            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY || echo "Flutter build ios customer failed"
+            --dart-define=SUPABASE_URL="${SUPABASE_URL:-}" \
+            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}" \
+            --dart-define=SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-}" || echo "Flutter build ios customer failed"
 
           echo "== Manual Package Customer_App.ipa =="
           if [ -d build/ios/iphoneos/Runner.app ]; then
@@ -176,9 +180,9 @@ workflows:
           echo "== Build Admin iOS (unsigned) =="
           flutter build ios --release --no-codesign \
             --target lib/admin/main_admin.dart \
-            --dart-define=SUPABASE_URL=$SUPABASE_URL \
-            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
-            --dart-define=SUPABASE_SERVICE_ROLE_KEY=$SUPABASE_SERVICE_ROLE_KEY || echo "Flutter build ios admin failed"
+            --dart-define=SUPABASE_URL="${SUPABASE_URL:-}" \
+            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}" \
+            --dart-define=SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-}" || echo "Flutter build ios admin failed"
 
           echo "== Manual Package Admin_App.ipa =="
           if [ -d build/ios/iphoneos/Runner.app ]; then
