@@ -32,23 +32,28 @@ workflows:
           set -euo pipefail
           echo "== Triggering dual iOS build (Manual Packaging) at $(date) =="
 
-          echo "== Factory Reset =="
+          echo "== Clean build artifacts =="
           rm -f ios/Podfile.lock || true
           rm -f ios/Podfile || true
-          rm -rf ios
           rm -rf build
           flutter clean
 
-          echo "== Regenerate iOS folder =="
-          flutter create . --platforms ios
-
-          echo "== Force iOS deployment target to 12.0 =="
-          if [ -f ios/Podfile ]; then
-            sed -E -i '' "s/platform :ios, '([0-9.]+)'/platform :ios, '12.0'/" ios/Podfile || true
-          fi
-
           echo "== Dependencies =="
           flutter pub get
+
+          echo "== Generate Podfile via Flutter iOS Config =="
+          flutter build ios --config-only --no-codesign || true
+          if [ ! -f ios/Podfile ]; then
+            echo "Podfile still missing, forcing flutter create iOS structure..."
+            flutter create . --platforms ios
+            flutter build ios --config-only --no-codesign || true
+          fi
+
+          echo "== Force iOS deployment target to 13.0 =="
+          if [ -f ios/Podfile ]; then
+            sed -E -i '' "s/#[[:space:]]*platform :ios, '([0-9.]+)'/platform :ios, '13.0'/" ios/Podfile || true
+            sed -E -i '' "s/platform :ios, '([0-9.]+)'/platform :ios, '13.0'/" ios/Podfile || true
+          fi
 
           PLIST="ios/Runner/Info.plist"
           echo "== Ensure iOS permissions (Info.plist) via Dart (UTF-8 safe) =="
@@ -134,9 +139,13 @@ workflows:
           fi
 
           echo "== Install CocoaPods =="
-          cd ios
-          pod install --repo-update
-          cd ..
+          if [ -f ios/Podfile ]; then
+            cd ios
+            pod install --repo-update || pod install
+            cd ..
+          else
+            echo "Warning: Podfile still missing after config."
+          fi
 
           echo "== Prepare IPA output directory =="
           mkdir -p build/ios/ipa

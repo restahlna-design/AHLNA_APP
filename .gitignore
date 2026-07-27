@@ -21,3 +21,16 @@ ios/Flutter/ephemeral/
 *.iml
 *.log
 *.tmp
+*.txt
+create_github_repo.dart
+check_and_deploy_ios.dart
+deploy_and_build.dart
+execute_sql_fix.dart
+run_weekly_cleanup_setup.dart
+get_build_error.dart
+check_build_status.dart
+debug_profile_error.dart
+test_database_connection.dart
+inspect_db.dart
+*.sql
+*.zip
