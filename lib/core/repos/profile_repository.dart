@@ -19,43 +19,69 @@ class ProfileRepository {
     }
     
     try {
-      // محاولة الإدراج/التحديث باستخدام عميل المصادقة العادي
-      debugPrint('ProfileRepository: Attempting upsert with auth client for phone: $phone, user: ${user ?? phone}');
-      await c.from(table).upsert({
-        'phone': phone,
-        'name': name,
-        'address': address,
-        'user': user ?? phone,
-        'updated_at': DateTime.now().toIso8601String(),
-      }, onConflict: 'phone');
-      debugPrint('ProfileRepository: Upsert successful with auth client');
-          return true;
-        } catch (e) {
-          debugPrint('ProfileRepository: Auth client upsert failed: $e');
-          
-          final svc = SupabaseManager.serviceClient;
-          if (svc != null) {
-            try {
-              debugPrint('ProfileRepository: Attempting upsert with service client');
-              await svc.from(table).upsert({
-                'phone': phone,
-                'name': name,
-                'address': address,
-                'user': user ?? phone,
-                'updated_at': DateTime.now().toIso8601String(),
-              }, onConflict: 'phone');
-              debugPrint('ProfileRepository: Upsert successful with service client');
-              return true;
-            } catch (svcError) {
-              debugPrint('ProfileRepository: Service client upsert also failed: $svcError');
-            }
+      debugPrint('ProfileRepository: Checking existing profile by phone: $phone');
+      final existing = await c.from(table).select('phone').eq('phone', phone).maybeSingle();
+      if (existing != null) {
+        debugPrint('ProfileRepository: Profile exists, performing direct update...');
+        await c.from(table).update({
+          'name': name,
+          'address': address,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('phone', phone);
+        return true;
+      } else {
+        debugPrint('ProfileRepository: Profile new, performing direct insert...');
+        await c.from(table).insert({
+          'phone': phone,
+          'name': name,
+          'address': address,
+          'user': user ?? phone,
+          'user_id_text': user ?? phone,
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+        return true;
+      }
+    } catch (e) {
+      debugPrint('ProfileRepository: Auth client operation failed ($e), retrying with service client...');
+      final svc = SupabaseManager.serviceClient;
+      if (svc != null) {
+        try {
+          final existing = await svc.from(table).select('phone').eq('phone', phone).maybeSingle();
+          if (existing != null) {
+            await svc.from(table).update({
+              'name': name,
+              'address': address,
+              'updated_at': DateTime.now().toIso8601String(),
+            }).eq('phone', phone);
+            return true;
           } else {
-            debugPrint('ProfileRepository: Service client is null');
+            await svc.from(table).insert({
+              'phone': phone,
+              'name': name,
+              'address': address,
+              'user': user ?? phone,
+              'user_id_text': user ?? phone,
+              'updated_at': DateTime.now().toIso8601String(),
+            });
+            return true;
           }
+        } catch (svcError) {
+          debugPrint('ProfileRepository: Service client also failed ($svcError), attempting final raw upsert fallback...');
+          try {
+            await svc.from(table).upsert({
+              'phone': phone,
+              'name': name,
+              'address': address,
+              'user': user ?? phone,
+              'updated_at': DateTime.now().toIso8601String(),
+            }, onConflict: 'phone');
+            return true;
+          } catch (_) {}
         }
-        
-        debugPrint('ProfileRepository: All upsert attempts failed');
-        return false;
+      }
+    }
+    debugPrint('ProfileRepository: All database save attempts failed');
+    return false;
   }
 
   Future<Map<String, dynamic>?> getByPhone(String phone) async {

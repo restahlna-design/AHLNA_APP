@@ -32,5 +32,11 @@ check_build_status.dart
 debug_profile_error.dart
 test_database_connection.dart
 inspect_db.dart
+check_profiles_db.dart
+download_*.dart
+inspect_*.dart
+*.bat
+*.json
+*.ipa
 *.sql
 *.zip
