@@ -19,52 +19,63 @@ class FoodRepository {
   SupabaseClient? get _c => SupabaseManager.client;
   SupabaseClient? get _svc => SupabaseManager.serviceClient;
 
+  List<FoodItem> _filterByCategory(List<FoodItem> items, String category) {
+    if (category.isEmpty || category == '__ALL__') return items;
+    final queries = category
+        .split('|')
+        .map((q) => q.trim().toLowerCase())
+        .where((q) => q.isNotEmpty)
+        .toList();
+    if (queries.isEmpty) return items;
+    return items.where((item) {
+      final cat = item.category.trim().toLowerCase();
+      return queries.any((q) => cat == q || cat.contains(q) || q.contains(cat));
+    }).toList();
+  }
+
   Future<List<FoodItem>> fetchByCategory(String category) async {
     final c = _svc ?? _c;
 
-    // 1. Fetch from Cache first (Offline First)
+    // 1. ALWAYS try direct live database fetch first for real-time accuracy!
+    if (c != null) {
+      try {
+        return await _fetchAndCache(c, category);
+      } catch (e) {
+        print('⚠️ Live fetch failed for $category: $e, checking cache...');
+      }
+    }
+
+    // 2. Fallback to cache ONLY if offline or live query failed
     final box = _box;
     if (box != null) {
-      final cachedData = box.get(category);
+      final cachedData = box.get('__ALL__') ?? box.get(category);
       if (cachedData != null) {
         try {
           final List<dynamic> decoded = cachedData;
           final items = decoded
               .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
               .toList();
-          if (items.isNotEmpty) {
-            print('📦 Loaded ${items.length} items from cache for $category');
-            _updateCacheInBackground(c, category);
-            return items;
-          }
+          return _filterByCategory(items, category);
         } catch (e) {
           print('⚠️ Error parsing cache for $category: $e');
         }
       }
-    } else {
-      print('⚠️ Cache box not available, skipping cache read for $category');
     }
 
-    if (c == null) {
-      print('❌ No Supabase client available');
-      return [];
-    }
-
-    // 2. If no cache or cache error, fetch from network
-    try {
-      return await _fetchAndCache(c, category);
-    } catch (e) {
-      print('❌ Error fetching items for $category: $e');
-      return [];
-    }
+    return [];
   }
 
   Future<List<FoodItem>> fetchByCategoryFresh(String category) async {
     final c = _svc ?? _c;
     if (c == null) {
-      return [];
+      return await fetchByCategory(category);
     }
-    return await _fetchAndCache(c, category);
+    try {
+      return await _fetchAndCache(c, category);
+    } catch (e) {
+      print('⚠️ fetchByCategoryFresh error: $e');
+      return await fetchByCategory(category);
+    }
   }
 
   Future<List<FoodItem>> fetchAllFresh() async {
@@ -76,13 +87,11 @@ class FoodRepository {
     if (svc != null) {
       try {
         print('🔄 Fetching all items via Service Client...');
-        res = await svc.from(table).select().order('id', ascending: false);
+        res = await svc.from(table).select().order('created_at', ascending: false);
         print('✅ Service Client success: ${res.length} items');
       } catch (e) {
         print('⚠️ Service client failed to fetch all items: $e');
       }
-    } else {
-      print('⚠️ Service client is null');
     }
 
     // 2. Fallback to Anon Client (Public data)
@@ -94,8 +103,6 @@ class FoodRepository {
       } catch (e) {
         print('❌ Anon client failed to fetch all items: $e');
       }
-    } else if (res == null) {
-      print('⚠️ Anon client is null');
     }
 
     // 3. Process Result & Update Cache
@@ -124,8 +131,6 @@ class FoodRepository {
           print('❌ Cache parse error: $e');
         }
       }
-    } else {
-      print('⚠️ Cache box not available, cannot fallback');
     }
 
     return [];
@@ -138,34 +143,34 @@ class FoodRepository {
     if (c == null) return;
     try {
       await _fetchAndCache(c, category);
-      print('🔄 Background cache update completed for $category');
-    } catch (e) {
-      print('⚠️ Background cache update failed for $category: $e');
-    }
+    } catch (_) {}
   }
 
   Future<List<FoodItem>> _fetchAndCache(
     SupabaseClient c,
     String category,
   ) async {
-    print('🔍 Fetching items for category from network: $category');
+    print('🔍 Truly fetching ALL live items from database for category: $category');
     final res = await c
         .from(table)
         .select()
-        .eq('category', category)
-        //.order('sort_order') // Removed: Column missing in DB
         .order('created_at', ascending: false);
-
-    print('✅ Fetched ${res.length} items for $category');
 
     final box = _box;
     if (box != null) {
-      await box.put(category, res);
+      await box.put('__ALL__', res);
     }
 
-    return (res as List)
+    final allItems = (res as List)
         .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
         .toList();
+
+    final filtered = _filterByCategory(allItems, category);
+    if (box != null && category.isNotEmpty && category != '__ALL__') {
+      await box.put(category, filtered.map((e) => e.toJson()).toList());
+    }
+    print('✅ Truly fetched and matched ${filtered.length} live items for $category out of ${allItems.length} total items in DB');
+    return filtered;
   }
 
   Stream<List<FoodItem>> streamByCategory(String category) {
@@ -174,48 +179,51 @@ class FoodRepository {
     return c
         .from(table)
         .stream(primaryKey: ['id'])
-        .eq('category', category)
-        //.order('sort_order') // Removed: Column missing in DB
         .order('created_at', ascending: false)
         .map((rows) {
-          // Update cache on stream update too
           final box = _box;
           if (box != null) {
-            box.put(category, rows);
+            box.put('__ALL__', rows);
           }
-          return rows
+          final allItems = rows
               .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
               .toList();
+          final filtered = _filterByCategory(allItems, category);
+          if (box != null && category.isNotEmpty && category != '__ALL__') {
+            box.put(category, filtered.map((e) => e.toJson()).toList());
+          }
+          return filtered;
         })
         .asBroadcastStream();
   }
 
   Stream<List<FoodItem>> streamWithInitial(String category) {
     return Stream<List<FoodItem>>.multi((controller) async {
-      // 1. Emit cached data immediately
+      // 1. Emit cached data immediately to avoid loading flash
       final box = _box;
       if (box != null) {
-        final cachedData = box.get(category);
+        final cachedData = box.get('__ALL__') ?? box.get(category);
         if (cachedData != null) {
           try {
             final List<dynamic> decoded = cachedData;
             final items = decoded
                 .map((e) => FoodItem.fromJson(Map<String, dynamic>.from(e)))
                 .toList();
-            controller.add(items);
+            final filtered = _filterByCategory(items, category);
+            if (filtered.isNotEmpty) {
+              controller.add(filtered);
+            }
           } catch (_) {}
         }
       }
 
-      // 2. Fetch fresh data and emit
+      // 2. Fetch LIVE REAL-TIME fresh data directly from Supabase DB and emit immediately!
       try {
-        final initial = await fetchByCategory(category);
+        final initial = await fetchByCategoryFresh(category);
         controller.add(initial);
-      } catch (_) {
-        // If network fails, we already emitted cache.
-      }
+      } catch (_) {}
 
-      // 3. Listen to real-time updates if online
+      // 3. Listen to real-time WebSockets updates from Supabase DB
       final sub = streamByCategory(
         category,
       ).listen(controller.add, onError: controller.addError);

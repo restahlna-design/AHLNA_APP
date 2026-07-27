@@ -53,8 +53,11 @@ class _HomeScreenState extends State<HomeScreen>
 
   String _categoryKey(CategoryModel m) {
     final en = m.nameEn.trim();
-    if (en.isNotEmpty) return en;
-    return m.nameAr.trim();
+    final ar = m.nameAr.trim();
+    if (en.isNotEmpty && ar.isNotEmpty && en != ar) {
+      return '$en|$ar';
+    }
+    return en.isNotEmpty ? en : ar;
   }
 
   @override

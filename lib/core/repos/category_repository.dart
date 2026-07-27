@@ -25,13 +25,23 @@ class CategoryRepository {
   }
 
   Stream<List<CategoryModel>> streamCategories() {
-    final c = _c;
-    if (c == null) return Stream.value([]);
-    return c
-        .from('categories')
-        .stream(primaryKey: ['id'])
-        .order('id', ascending: true)
-        .map((data) => data.map((e) => CategoryModel.fromJson(e)).toList());
+    return Stream<List<CategoryModel>>.multi((controller) async {
+      try {
+        final initial = await getAllCategories();
+        if (initial.isNotEmpty) controller.add(initial);
+      } catch (_) {}
+
+      final c = _c;
+      if (c != null) {
+        final sub = c
+            .from('categories')
+            .stream(primaryKey: ['id'])
+            .order('id', ascending: true)
+            .map((data) => data.map((e) => CategoryModel.fromJson(e)).toList())
+            .listen(controller.add, onError: controller.addError);
+        controller.onCancel = () => sub.cancel();
+      }
+    }, isBroadcast: true);
   }
 
   Future<void> addCategory(CategoryModel category) async {
