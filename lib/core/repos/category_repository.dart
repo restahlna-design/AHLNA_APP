@@ -69,17 +69,20 @@ class CategoryRepository {
 
   Stream<List<CategoryModel>> streamCategories() {
     return Stream<List<CategoryModel>>.multi((controller) async {
+      List<CategoryModel> currentCats = [];
+
       // STEP 1: Immediate HTTP fetch
       try {
         final initial = await getAllCategories();
         if (initial.isNotEmpty && !controller.isClosed) {
+          currentCats = initial;
           controller.add(initial);
         }
       } catch (e) {
         print('⚠️ streamCategories initial fetch error: $e');
       }
 
-      // STEP 2: Real-time WebSocket updates
+      // STEP 2: Real-time WebSocket updates (do NOT overwrite non-empty categories with empty WebSocket data)
       final c = _c;
       if (c != null) {
         try {
@@ -91,7 +94,14 @@ class CategoryRepository {
                   .map((e) => CategoryModel.fromJson(Map<String, dynamic>.from(e)))
                   .toList())
               .listen(
-                (data) { if (!controller.isClosed) controller.add(data); },
+                (data) {
+                  if (!controller.isClosed) {
+                    if (data.isNotEmpty || currentCats.isEmpty) {
+                      currentCats = data;
+                      controller.add(data);
+                    }
+                  }
+                },
                 onError: (e) => print('⚠️ Categories WebSocket error: $e'),
               );
           controller.onCancel = () => sub.cancel();

@@ -173,24 +173,32 @@ class FoodRepository {
 
   Stream<List<FoodItem>> streamWithInitial(String category) {
     return Stream<List<FoodItem>>.multi((controller) async {
+      List<FoodItem> currentItems = [];
+
       // STEP 1: Immediate HTTP fetch (reliable on both iOS & Android)
       try {
         final initial = await fetchByCategory(category);
-        if (!controller.isClosed) controller.add(initial);
+        if (initial.isNotEmpty) {
+          currentItems = initial;
+          if (!controller.isClosed) controller.add(initial);
+        }
       } catch (e) {
         print('⚠️ streamWithInitial initial fetch error: $e');
-        if (!controller.isClosed) controller.add([]);
       }
 
-      // STEP 2: Subscribe to real-time WebSocket updates
+      // STEP 2: Subscribe to real-time WebSocket updates (do NOT overwrite non-empty items with empty WebSocket data)
       try {
         final sub = streamByCategory(category).listen(
           (data) {
-            if (!controller.isClosed) controller.add(data);
+            if (!controller.isClosed) {
+              if (data.isNotEmpty || currentItems.isEmpty) {
+                currentItems = data;
+                controller.add(data);
+              }
+            }
           },
           onError: (e) {
             print('⚠️ WebSocket stream error: $e');
-            // Don't close the controller on stream error — data already loaded
           },
         );
         controller.onCancel = () => sub.cancel();

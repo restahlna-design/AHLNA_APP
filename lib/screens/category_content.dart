@@ -47,10 +47,12 @@ class _CategoryContentState extends State<CategoryContent>
     super.initState();
     widget.stream.listen((data) {
       if (mounted) {
-        setState(() {
-          _items = data;
-          _loaded = true;
-        });
+        if (data.isNotEmpty || _items.isEmpty) {
+          setState(() {
+            _items = data;
+            _loaded = true;
+          });
+        }
       }
     });
     _query = widget.search.value;
