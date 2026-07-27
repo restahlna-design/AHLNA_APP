@@ -14,8 +14,7 @@ SolidCompression=yes
 SetupIconFile=windows\runner\resources\app_icon.ico
 
 [Files]
-Source: "build\\windows\\x64\\runner\\Release\\ahlna_daquq.exe"; DestDir: "{app}"; Flags: ignoreversion
-Source: "assets\\images\\logo.png"; DestDir: "{app}\\assets\\images"; Flags: ignoreversion recursesubdirs createallsubdirs
+Source: "build\windows\x64\runner\Release\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
 Name: "{group}\Ahlna Daquq Admin"; Filename: "{app}\\ahlna_daquq.exe"
