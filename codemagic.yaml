@@ -94,16 +94,15 @@ workflows:
               if (!text.contains('<key>NSAppTransportSecurity</key>')) {
                 final insertPoint = text.lastIndexOf('</dict>');
                 if (insertPoint != -1) {
-                  final ats = '''  <key>NSAppTransportSecurity</key>
-  <dict>
-    <key>NSAllowsArbitraryLoads</key>
-    <true/>
-    <key>NSAllowsArbitraryLoadsInWebContent</key>
-    <true/>
-    <key>NSAllowsLocalNetworking</key>
-    <true/>
-  </dict>
-''';
+                  final ats = '  <key>NSAppTransportSecurity</key>\n' +
+                              '  <dict>\n' +
+                              '    <key>NSAllowsArbitraryLoads</key>\n' +
+                              '    <true/>\n' +
+                              '    <key>NSAllowsArbitraryLoadsInWebContent</key>\n' +
+                              '    <true/>\n' +
+                              '    <key>NSAllowsLocalNetworking</key>\n' +
+                              '    <true/>\n' +
+                              '  </dict>\n';
                   text = text.substring(0, insertPoint) + ats + text.substring(insertPoint);
                   changed = true;
                 }
