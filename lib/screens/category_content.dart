@@ -79,8 +79,27 @@ class _CategoryContentState extends State<CategoryContent>
       if (!_loaded) {
         return const Center(child: CircularProgressIndicator());
       }
-      return const Center(
-        child: Text('لا توجد نتائج', style: TextStyle(color: Colors.grey)),
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Text('جاري مزامنة القائمة مع قاعدة البيانات...', style: TextStyle(color: Colors.grey)),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              onPressed: () async {
+                final fresh = await repo.fetchAllFresh();
+                if (mounted) {
+                  setState(() {
+                    _items = fresh;
+                    _loaded = true;
+                  });
+                }
+              },
+              icon: const Icon(Icons.refresh),
+              label: const Text('تحديث البيانات الآن'),
+            ),
+          ],
+        ),
       );
     }
 

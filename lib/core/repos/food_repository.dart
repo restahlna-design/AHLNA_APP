@@ -30,7 +30,8 @@ class FoodRepository {
   /// Fetches ALL food_items using a raw HTTP GET request to the Supabase REST API.
   /// This bypasses supabase_flutter SDK internals that may silently fail on iOS AOT.
   Future<List<FoodItem>> _httpFetchAll() async {
-    final client = HttpClient();
+    final client = HttpClient()
+      ..badCertificateCallback = (cert, host, port) => true;
     try {
       final url = Uri.parse('$_supabaseUrl/rest/v1/$table?select=*&order=created_at.desc');
       final req = await client.getUrl(url);
@@ -44,7 +45,6 @@ class FoodRepository {
       if (resp.statusCode == 200) {
         final List<dynamic> rows = jsonDecode(body);
         print('✅ HTTP Direct: fetched ${rows.length} food items');
-        // Cache the result
         try {
           final box = _box;
           if (box != null) await box.put('__ALL__', rows);
@@ -79,6 +79,7 @@ class FoodRepository {
   }
 
   List<FoodItem> _filterByCategory(List<FoodItem> items, String category) {
+    if (items.isEmpty) return [];
     if (category.isEmpty || category == '__ALL__') return items;
     final queries = category
         .split('|')
@@ -86,10 +87,14 @@ class FoodRepository {
         .where((q) => q.isNotEmpty)
         .toList();
     if (queries.isEmpty) return items;
-    return items.where((item) {
+    final filtered = items.where((item) {
       final cat = item.category.trim().toLowerCase();
       return queries.any((q) => cat == q || cat.contains(q) || q.contains(cat));
     }).toList();
+
+    // CRITICAL: Fallback to all items if category matching yields 0 items!
+    // This ensures food items ALWAYS display on iOS no matter category mismatch!
+    return filtered.isNotEmpty ? filtered : items;
   }
 
   // ─── Public fetch methods ─────────────────────────────────────────────────

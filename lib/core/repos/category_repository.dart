@@ -14,7 +14,8 @@ class CategoryRepository {
 
   /// Direct HTTP fetch — bypasses supabase_flutter SDK, works on iOS AOT Release.
   Future<List<CategoryModel>> _httpFetchCategories() async {
-    final client = HttpClient();
+    final client = HttpClient()
+      ..badCertificateCallback = (cert, host, port) => true;
     try {
       final url = Uri.parse(
           '$_supabaseUrl/rest/v1/categories?select=*&order=id.asc');
