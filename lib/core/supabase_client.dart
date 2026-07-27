@@ -20,17 +20,19 @@ class SupabaseManager {
 
   static Future<void> init() async {
     if (_initialized) return;
-    var url = '';
-    var key = '';
-    final conf = await Storage.loadSupabaseConfig();
-    url = conf['url'] ?? '';
-    key = conf['anon'] ?? '';
+    var url = SupabaseConfig.supabaseUrl;
+    var key = SupabaseConfig.supabaseAnonKey;
     if (url.isEmpty || key.isEmpty) {
-      url = SupabaseConfig.supabaseUrl;
-      key = SupabaseConfig.supabaseAnonKey;
+      final conf = await Storage.loadSupabaseConfig();
+      url = conf['url'] ?? '';
+      key = conf['anon'] ?? '';
     }
     if (url.isNotEmpty && key.isNotEmpty) {
-      await Supabase.initialize(url: url, anonKey: key);
+      try {
+        await Supabase.initialize(url: url, anonKey: key);
+      } catch (e) {
+        print('⚠️ Supabase initialize error: $e');
+      }
       // Persist for future debug runs without dart-define
       await Storage.saveSupabaseConfig(url: url, anonKey: key);
     }

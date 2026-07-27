@@ -19,6 +19,13 @@ add_key() {
     /usr/libexec/PlistBuddy -c "$1" "$PLIST" || echo "Command failed: $1"
 }
 
+# App Transport Security & Networking
+add_key "Add :NSAppTransportSecurity dict"
+add_key "Add :NSAppTransportSecurity:NSAllowsArbitraryLoads bool true"
+add_key "Add :NSAppTransportSecurity:NSAllowsArbitraryLoadsInWebContent bool true"
+add_key "Add :NSAppTransportSecurity:NSAllowsLocalNetworking bool true"
+add_key "Add :NSLocalNetworkUsageDescription string 'نحتاج الوصول للشبكة للاتصال بقاعدة البيانات'"
+
 # NSLocationWhenInUseUsageDescription
 add_key "Add :NSLocationWhenInUseUsageDescription string 'لتوصيل الطلب'"
 

@@ -36,7 +36,7 @@ check_profiles_db.dart
 download_*.dart
 inspect_*.dart
 *.bat
-*.json
 *.ipa
+*.apk
 *.sql
 *.zip

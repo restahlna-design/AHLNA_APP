@@ -89,6 +89,27 @@ workflows:
               }
               return text;
             }
+
+            String ensureATS(String text) {
+              if (!text.contains('<key>NSAppTransportSecurity</key>')) {
+                final insertPoint = text.lastIndexOf('</dict>');
+                if (insertPoint != -1) {
+                  final ats = '''  <key>NSAppTransportSecurity</key>
+  <dict>
+    <key>NSAllowsArbitraryLoads</key>
+    <true/>
+    <key>NSAllowsArbitraryLoadsInWebContent</key>
+    <true/>
+    <key>NSAllowsLocalNetworking</key>
+    <true/>
+  </dict>
+''';
+                  text = text.substring(0, insertPoint) + ats + text.substring(insertPoint);
+                  changed = true;
+                }
+              }
+              return text;
+            }
             
             String ensureSchemes(String text, List<String> schemes) {
               final arrayRegex = RegExp(r'<key>LSApplicationQueriesSchemes<\/key>\s*<array>[\s\S]*?<\/array>', multiLine: true);
@@ -120,6 +141,8 @@ workflows:
               return text;
             }
             
+            content = ensureATS(content);
+            content = ensureStringKey(content, 'NSLocalNetworkUsageDescription', 'نحتاج الوصول للشبكة للاتصال بقاعدة البيانات والخادم');
             content = ensureStringKey(content, 'NSLocationWhenInUseUsageDescription', 'موقعك مطلوب لتوصيل الطلب');
             content = ensureStringKey(content, 'NSPhotoLibraryUsageDescription', 'نحتاج الوصول للصور لاختيار وحفظ الصور');
             content = ensureSchemes(content, ['comgooglemaps', 'comgooglemapsurl']);

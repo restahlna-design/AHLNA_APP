@@ -45,5 +45,25 @@
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
 	<true/>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSAllowsArbitraryLoads</key>
+		<true/>
+		<key>NSAllowsArbitraryLoadsInWebContent</key>
+		<true/>
+		<key>NSAllowsLocalNetworking</key>
+		<true/>
+	</dict>
+	<key>NSLocalNetworkUsageDescription</key>
+	<string>نحتاج الوصول للشبكة للاتصال بقاعدة البيانات والخادم</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>موقعك مطلوب لتوصيل الطلب</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>نحتاج الوصول للصور لاختيار وحفظ الصور</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>comgooglemaps</string>
+		<string>comgooglemapsurl</string>
+	</array>
 </dict>
 </plist>
