@@ -30,9 +30,9 @@ workflows:
       - name: iOS Dual Unsigned Build (Manual Packaging)
         script: |
           set -eo pipefail
-          export SUPABASE_URL="${SUPABASE_URL:-}"
-          export SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}"
-          export SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-}"
+          export SUPABASE_URL="${SUPABASE_URL:-https://boylzidmvvldouxtrpiv.supabase.co}"
+          export SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveWx6aWRtdnZsZG91eHRycGl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NDQ0NjgsImV4cCI6MjA3OTQyMDQ2OH0.k-YInG1GfcBK6GQCjOuGMYcP_m2Eq7yTQSPuspCExr0}"
+          export SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveWx6aWRtdnZsZG91eHRycGl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NDQ0NjgsImV4cCI6MjA3OTQyMDQ2OH0.GnddzO4SFff1ze0pdvmk-X-FKxpn9ajdm5Q4hjbiGoY}"
           export CM_EXPORT_DIR="${CM_EXPORT_DIR:-build/ios/ipa}"
           echo "== Triggering dual iOS build (Manual Packaging) at $(date) =="
 
