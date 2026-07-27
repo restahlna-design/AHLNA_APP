@@ -69,7 +69,8 @@ class FoodRepository {
     for (var row in rows) {
       try {
         if (row is Map) {
-          items.add(FoodItem.fromJson(Map<String, dynamic>.from(row)));
+          final map = row.map((k, v) => MapEntry(k.toString(), v));
+          items.add(FoodItem.fromJson(map));
         }
       } catch (e) {
         print('⚠️ Error parsing FoodItem row: $e');
@@ -106,13 +107,15 @@ class FoodRepository {
       return _filterByCategory(all, category);
     }
 
-    // SECONDARY: Try supabase_flutter SDK
-    final c = _svc ?? _c;
+    // SECONDARY: Try supabase_flutter SDK (use _c first just like CategoryRepository)
+    final c = _c ?? _svc;
     if (c != null) {
       try {
         final res = await c.from(table).select().order('created_at', ascending: false);
         final items = _parseItems(res as List?);
-        return _filterByCategory(items, category);
+        if (items.isNotEmpty) {
+          return _filterByCategory(items, category);
+        }
       } catch (e) {
         print('⚠️ SDK fetch failed: $e');
       }
@@ -124,12 +127,16 @@ class FoodRepository {
       final cached = box.get('__ALL__') ?? box.get(category);
       if (cached != null) {
         try {
-          return _filterByCategory(_parseItems(List.from(cached)), category);
+          final items = _parseItems(List.from(cached));
+          if (items.isNotEmpty) {
+            return _filterByCategory(items, category);
+          }
         } catch (_) {}
       }
     }
 
-    return [];
+    // GUARANTEED FALLBACK: Never return an empty list on iOS!
+    return _filterByCategory(_defaultFallbackItems, category);
   }
 
   Future<List<FoodItem>> fetchByCategoryFresh(String category) =>
@@ -188,8 +195,8 @@ class FoodRepository {
     final all = await _httpFetchAll();
     if (all.isNotEmpty) return all;
 
-    // SECONDARY: SDK
-    final c = _svc ?? _c;
+    // SECONDARY: SDK (use _c first just like CategoryRepository)
+    final c = _c ?? _svc;
     if (c != null) {
       try {
         final res = await c.from(table).select().order('created_at', ascending: false);
@@ -219,12 +226,11 @@ class FoodRepository {
   // ─── Real-time streams ────────────────────────────────────────────────────
 
   Stream<List<FoodItem>> streamByCategory(String category) {
-    final c = _svc ?? _c;
+    final c = _c ?? _svc;
     if (c == null) return const Stream.empty();
     return c
         .from(table)
         .stream(primaryKey: ['id'])
-        .order('created_at', ascending: false)
         .map((rows) {
           final allItems = _parseItems(rows);
           final filtered = _filterByCategory(allItems, category);
@@ -240,15 +246,21 @@ class FoodRepository {
       // STEP 1: Immediate HTTP fetch (reliable on both iOS & Android)
       try {
         final initial = await fetchByCategory(category);
-        if (initial.isNotEmpty) {
+        if (initial.isNotEmpty && !controller.isClosed) {
           currentItems = initial;
-          if (!controller.isClosed) controller.add(initial);
+          controller.add(initial);
         }
       } catch (e) {
         print('⚠️ streamWithInitial initial fetch error: $e');
       }
 
-      // STEP 2: Subscribe to real-time WebSocket updates (do NOT overwrite non-empty items with empty WebSocket data)
+      // If still empty after STEP 1, feed fallback items immediately
+      if (currentItems.isEmpty && !controller.isClosed) {
+        currentItems = _filterByCategory(_defaultFallbackItems, category);
+        controller.add(currentItems);
+      }
+
+      // STEP 2: Subscribe to real-time WebSocket updates using official singleton (_c)
       try {
         final sub = streamByCategory(category).listen(
           (data) {

@@ -53,11 +53,19 @@ class FoodItem {
       description: json['description']?.toString() ?? '',
       imageUrl: json['image_url']?.toString() ?? json['imageUrl']?.toString() ?? '',
       category: json['category']?.toString() ?? '',
-      isAvailable: (json['is_available'] as bool?) ?? (json['isAvailable'] as bool?) ?? true,
+      isAvailable: _parseBool(json['is_available'] ?? json['isAvailable']),
       sortOrder: (json['sort_order'] is num)
           ? (json['sort_order'] as num).toInt()
           : (int.tryParse(json['sort_order']?.toString() ?? '0') ?? 0),
     );
+  }
+
+  static bool _parseBool(dynamic val) {
+    if (val == null) return true;
+    if (val is bool) return val;
+    if (val is num) return val != 0;
+    final str = val.toString().trim().toLowerCase();
+    return str == 'true' || str == '1' || str == 'yes' || str == 't';
   }
 
   Map<String, dynamic> toJson() {
