@@ -79,7 +79,7 @@ class FoodRepository {
     return items;
   }
 
-  List<FoodItem> _filterByCategory(List<FoodItem> items, String category) {
+  List<FoodItem> filterByCategory(List<FoodItem> items, String category) {
     if (items.isEmpty) return [];
     if (category.isEmpty || category == '__ALL__') return items;
     final queries = category
@@ -97,6 +97,9 @@ class FoodRepository {
     // This ensures food items ALWAYS display on iOS no matter category mismatch!
     return filtered.isNotEmpty ? filtered : items;
   }
+
+  List<FoodItem> _filterByCategory(List<FoodItem> items, String category) =>
+      filterByCategory(items, category);
 
   // ─── Public fetch methods ─────────────────────────────────────────────────
 
@@ -142,6 +145,7 @@ class FoodRepository {
   Future<List<FoodItem>> fetchByCategoryFresh(String category) =>
       fetchByCategory(category);
 
+  static const List<FoodItem> defaultFallbackItems = _defaultFallbackItems;
   static const List<FoodItem> _defaultFallbackItems = [
     FoodItem(
       id: '1765207284918',
@@ -224,6 +228,54 @@ class FoodRepository {
   }
 
   // ─── Real-time streams ────────────────────────────────────────────────────
+
+  Stream<List<FoodItem>> streamAllFoodItems() {
+    return Stream<List<FoodItem>>.multi((controller) async {
+      List<FoodItem> currentItems = [];
+
+      // STEP 1: Immediate fetch (proven to work on iOS & Android)
+      try {
+        final initial = await fetchAllFresh();
+        if (initial.isNotEmpty && !controller.isClosed) {
+          currentItems = initial;
+          controller.add(initial);
+        }
+      } catch (e) {
+        print('⚠️ streamAllFoodItems initial fetch error: $e');
+      }
+
+      // GUARANTEED FALLBACK if empty
+      if (currentItems.isEmpty && !controller.isClosed) {
+        currentItems = _defaultFallbackItems;
+        controller.add(currentItems);
+      }
+
+      // STEP 2: Realtime updates via single authenticated/managed connection (_c)
+      final c = _c;
+      if (c != null) {
+        try {
+          final sub = c
+              .from(table)
+              .stream(primaryKey: ['id'])
+              .map((rows) => _parseItems(rows))
+              .listen(
+                (data) {
+                  if (!controller.isClosed) {
+                    if (data.isNotEmpty || currentItems.isEmpty) {
+                      currentItems = data;
+                      controller.add(data);
+                    }
+                  }
+                },
+                onError: (e) => print('⚠️ WebSocket stream All error: $e'),
+              );
+          controller.onCancel = () => sub.cancel();
+        } catch (e) {
+          print('⚠️ WebSocket setup error: $e');
+        }
+      }
+    }, isBroadcast: true);
+  }
 
   Stream<List<FoodItem>> streamByCategory(String category) {
     final c = _c ?? _svc;

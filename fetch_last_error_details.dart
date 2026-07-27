@@ -7,8 +7,10 @@ void main() async {
   final file = File('active_build.txt');
   if (await file.exists()) {
     final lines = await file.readAsLines();
-    if (lines.length >= 2) buildId = lines[1].trim();
-    else if (lines.isNotEmpty) buildId = lines[0].trim();
+    if (lines.length >= 2) {
+      buildId = lines[1].trim();
+    } else if (lines.isNotEmpty)
+      buildId = lines[0].trim();
   }
   print('Checking logs for buildId: $buildId');
   final client = HttpClient();
@@ -22,14 +24,22 @@ void main() async {
     final data = jsonDecode(body);
     final build = data['build'] ?? data;
     print('Build status: ${build['status']}');
-    print('Status message / error: ${build['statusMessage'] ?? build['error'] ?? build['message'] ?? 'None'}');
-    
+    print(
+      'Status message / error: ${build['statusMessage'] ?? build['error'] ?? build['message'] ?? 'None'}',
+    );
+
     final List steps = build['steps'] ?? [];
     print('Total steps found: ${steps.length}');
     for (var s in steps) {
       print('=== STEP: ${s['name']} | STATUS: ${s['status']} ===');
-      if (s['status'] != 'successful' && s['status'] != 'passed' && s['status'] != 'skipped') {
-        final logUrl = s['logUrl'] ?? (s['_id'] != null ? 'https://api.codemagic.io/builds/$buildId/logs/${s['_id']}' : null);
+      if (s['status'] != 'successful' &&
+          s['status'] != 'passed' &&
+          s['status'] != 'skipped') {
+        final logUrl =
+            s['logUrl'] ??
+            (s['_id'] != null
+                ? 'https://api.codemagic.io/builds/$buildId/logs/${s['_id']}'
+                : null);
         if (logUrl != null) {
           print('FETCHING LOG FOR ${s['name']} FROM: $logUrl');
           final logReq = await client.getUrl(Uri.parse(logUrl));

@@ -32,10 +32,7 @@ class _AdminOffersScreenState extends State<AdminOffersScreen> {
     setState(() => loading = false);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم الحفظ'),
-        duration: Duration(seconds: 1),
-      ),
+      const SnackBar(content: Text('تم الحفظ'), duration: Duration(seconds: 1)),
     );
   }
 
@@ -46,10 +43,7 @@ class _AdminOffersScreenState extends State<AdminOffersScreen> {
     setState(() => loading = false);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('تم الحذف'),
-        duration: Duration(seconds: 1),
-      ),
+      const SnackBar(content: Text('تم الحذف'), duration: Duration(seconds: 1)),
     );
   }
 
@@ -68,7 +62,7 @@ class _AdminOffersScreenState extends State<AdminOffersScreen> {
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.06),
+                  color: Colors.black.withValues(alpha: 0.06),
                   blurRadius: 18,
                   offset: const Offset(0, 8),
                 ),
@@ -117,7 +111,8 @@ class _AdminOffersScreenState extends State<AdminOffersScreen> {
                       return const SizedBox.shrink();
                     }
                     final lower = link.toLowerCase();
-                    final isImage = lower.endsWith('.png') ||
+                    final isImage =
+                        lower.endsWith('.png') ||
                         lower.endsWith('.jpg') ||
                         lower.endsWith('.jpeg') ||
                         lower.endsWith('.webp');
@@ -134,7 +129,10 @@ class _AdminOffersScreenState extends State<AdminOffersScreen> {
                         ),
                       );
                     }
-                    return Text(link, style: const TextStyle(fontWeight: FontWeight.w600));
+                    return Text(
+                      link,
+                      style: const TextStyle(fontWeight: FontWeight.w600),
+                    );
                   },
                 ),
               ],

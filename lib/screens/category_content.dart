@@ -47,6 +47,7 @@ class _CategoryContentState extends State<CategoryContent>
   @override
   void initState() {
     super.initState();
+    if (widget.initialItems.isNotEmpty) _loaded = true;
     _subscribeStream(widget.stream);
     _query = widget.search.value;
     widget.search.addListener(_onSearchChanged);
@@ -81,6 +82,12 @@ class _CategoryContentState extends State<CategoryContent>
   @override
   void didUpdateWidget(CategoryContent oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (widget.initialItems != oldWidget.initialItems || oldWidget.category != widget.category) {
+      setState(() {
+        _items = widget.initialItems;
+        if (_items.isNotEmpty) _loaded = true;
+      });
+    }
     if (oldWidget.stream != widget.stream || oldWidget.category != widget.category) {
       _subscribeStream(widget.stream);
     }

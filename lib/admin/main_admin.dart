@@ -164,7 +164,7 @@ class _AdminRootState extends State<AdminRoot> {
               color: Colors.white,
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 20,
                   offset: const Offset(4, 0),
                 ),
@@ -182,7 +182,7 @@ class _AdminRootState extends State<AdminRoot> {
                     children: [
                       CircleAvatar(
                         radius: 28,
-                        backgroundColor: primaryGreen.withOpacity(0.1),
+                        backgroundColor: primaryGreen.withValues(alpha: 0.1),
                         backgroundImage: const AssetImage('assets/logo.PNG'),
                       ),
                       const SizedBox(height: 15), // زدنا المسافة قليلاً
@@ -250,7 +250,10 @@ class _AdminRootState extends State<AdminRoot> {
                           const SizedBox(width: 8),
                           Text(
                             "Admin Panel v1.0",
-                            style: TextStyle(color: Colors.grey[400], fontSize: 12),
+                            style: TextStyle(
+                              color: Colors.grey[400],
+                              fontSize: 12,
+                            ),
                           ),
                         ],
                       ),
@@ -330,12 +333,12 @@ class _AdminRootState extends State<AdminRoot> {
           padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
           decoration: BoxDecoration(
             color: isSelected
-                ? primaryGreen.withOpacity(0.1)
+                ? primaryGreen.withValues(alpha: 0.1)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
-                  ? primaryGreen.withOpacity(0.2)
+                  ? primaryGreen.withValues(alpha: 0.2)
                   : Colors.transparent,
             ),
           ),
@@ -386,15 +389,23 @@ class _AdminRootState extends State<AdminRoot> {
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Text('هذا التطبيق تم تطويره وبرمجته بالكامل من قبل المطوّر: حسين ناصر.'),
+                Text(
+                  'هذا التطبيق تم تطويره وبرمجته بالكامل من قبل المطوّر: حسين ناصر.',
+                ),
                 SizedBox(height: 8),
-                Text('تم تصميم التطبيق بعناية لتقديم أفضل تجربة للمستخدم، مع التركيز على السهولة والسرعة والدقة في عرض المحتوى.'),
+                Text(
+                  'تم تصميم التطبيق بعناية لتقديم أفضل تجربة للمستخدم، مع التركيز على السهولة والسرعة والدقة في عرض المحتوى.',
+                ),
                 SizedBox(height: 8),
-                Text('يتم تحديث التطبيق وتحسينه بشكل مستمر لضمان أداء أفضل وتوفير مزايا جديدة تلائم احتياجات المستخدمين.'),
+                Text(
+                  'يتم تحديث التطبيق وتحسينه بشكل مستمر لضمان أداء أفضل وتوفير مزايا جديدة تلائم احتياجات المستخدمين.',
+                ),
                 SizedBox(height: 8),
                 Text('حقوق الملكية محفوظة © 2025 – حسين ناصر'),
                 SizedBox(height: 8),
-                Text('جميع حقوق التصميم والبرمجة والتطوير محفوظة ولا يسمح بإعادة نشر التطبيق أو تعديله دون إذن.'),
+                Text(
+                  'جميع حقوق التصميم والبرمجة والتطوير محفوظة ولا يسمح بإعادة نشر التطبيق أو تعديله دون إذن.',
+                ),
                 SizedBox(height: 12),
                 Text('للتواصل'),
               ],
@@ -410,7 +421,10 @@ class _AdminRootState extends State<AdminRoot> {
                     final uri = Uri.parse('https://www.instagram.com/ev2m/');
                     if (await canLaunchUrl(uri)) {
                       try {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
                       } catch (_) {
                         await launchUrl(uri);
                       }
@@ -421,10 +435,15 @@ class _AdminRootState extends State<AdminRoot> {
                 IconButton(
                   tooltip: 'Facebook',
                   onPressed: () async {
-                    final uri = Uri.parse('https://www.facebook.com/abu.ghada.785116?locale=ar_AR');
+                    final uri = Uri.parse(
+                      'https://www.facebook.com/abu.ghada.785116?locale=ar_AR',
+                    );
                     if (await canLaunchUrl(uri)) {
                       try {
-                        await launchUrl(uri, mode: LaunchMode.externalApplication);
+                        await launchUrl(
+                          uri,
+                          mode: LaunchMode.externalApplication,
+                        );
                       } catch (_) {
                         await launchUrl(uri);
                       }
@@ -443,6 +462,4 @@ class _AdminRootState extends State<AdminRoot> {
       },
     );
   }
-
-
 }

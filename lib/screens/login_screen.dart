@@ -93,7 +93,7 @@ class _LoginScreenState extends State<LoginScreen>
       }
     });
   }
-  
+
   Future<void> _checkProfileAndProceed() async {
     final c = SupabaseManager.client;
     final u = c?.auth.currentUser;
@@ -173,7 +173,7 @@ class _LoginScreenState extends State<LoginScreen>
       } catch (e) {
         debugPrint('LoginScreen: Error during upsert: $e');
       }
-      
+
       await Storage.saveProfile(
         name: profile.name,
         phone: profile.phone,
@@ -228,7 +228,10 @@ class _LoginScreenState extends State<LoginScreen>
                     decoration: BoxDecoration(
                       // استخدام لون التطبيق الأصلي مع تدرج بسيط
                       gradient: LinearGradient(
-                        colors: [primaryColor, primaryColor.withOpacity(0.8)],
+                        colors: [
+                          primaryColor,
+                          primaryColor.withValues(alpha: 0.8),
+                        ],
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                       ),
@@ -311,7 +314,7 @@ class _LoginScreenState extends State<LoginScreen>
                       borderRadius: BorderRadius.circular(24),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withOpacity(0.1),
+                          color: Colors.black.withValues(alpha: 0.1),
                           blurRadius: 20,
                           offset: const Offset(0, 10),
                         ),
@@ -322,55 +325,57 @@ class _LoginScreenState extends State<LoginScreen>
                       child: Column(
                         children: [
                           if (_showForm) ...[
-                          _buildFixedColorField(
-                            controller: _nameController,
-                            label: 'اسمك الكريم',
-                            icon: Icons.person,
-                            themeColor: primaryColor,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildFixedColorField(
-                            controller: _phoneController,
-                            label: 'رقم الهاتف (0770...)',
-                            icon: Icons.phone_android,
-                            themeColor: primaryColor,
-                            isPhone: true,
-                          ),
-                          const SizedBox(height: 16),
-                          _buildFixedColorField(
-                            controller: _addressController,
-                            label: 'العنوان الكامل',
-                            icon: Icons.location_on,
-                            themeColor: primaryColor,
-                            isMultiLine: true,
-                          ),
-                          const SizedBox(height: 30),
+                            _buildFixedColorField(
+                              controller: _nameController,
+                              label: 'اسمك الكريم',
+                              icon: Icons.person,
+                              themeColor: primaryColor,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildFixedColorField(
+                              controller: _phoneController,
+                              label: 'رقم الهاتف (0770...)',
+                              icon: Icons.phone_android,
+                              themeColor: primaryColor,
+                              isPhone: true,
+                            ),
+                            const SizedBox(height: 16),
+                            _buildFixedColorField(
+                              controller: _addressController,
+                              label: 'العنوان الكامل',
+                              icon: Icons.location_on,
+                              themeColor: primaryColor,
+                              isMultiLine: true,
+                            ),
+                            const SizedBox(height: 30),
 
-                          // زر الحفظ
-                          SizedBox(
-                            width: double.infinity,
-                            height: 55,
-                            child: ElevatedButton(
-                              onPressed: _submit,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor:
-                                    primaryColor, // لون الزر نفس لون التطبيق
-                                foregroundColor: Colors.white,
-                                elevation: 8,
-                                shadowColor: primaryColor.withOpacity(0.4),
-                                shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16),
+                            // زر الحفظ
+                            SizedBox(
+                              width: double.infinity,
+                              height: 55,
+                              child: ElevatedButton(
+                                onPressed: _submit,
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor:
+                                      primaryColor, // لون الزر نفس لون التطبيق
+                                  foregroundColor: Colors.white,
+                                  elevation: 8,
+                                  shadowColor: primaryColor.withValues(
+                                    alpha: 0.4,
+                                  ),
+                                  shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
                                 ),
-                              ),
-                              child: const Text(
-                                'حفظ ومتابعة',
-                                style: TextStyle(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.bold,
+                                child: const Text(
+                                  'حفظ ومتابعة',
+                                  style: TextStyle(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
                           ],
                         ],
                       ),

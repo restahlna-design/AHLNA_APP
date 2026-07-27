@@ -15,15 +15,16 @@ import 'core/repos/profile_repository.dart';
 Future<void> main() async {
   WidgetsBinding widgetsBinding = WidgetsFlutterBinding.ensureInitialized();
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
-  
+
   await Hive.initFlutter();
   final foodBox = await Hive.openBox('food_cache_v2');
   final offersBox = await Hive.openBox('offers_cache');
   try {
-    await foodBox.clear(); // مسح الكاش القديم فوراً لضمان الجلب المباشر واللحظي من قاعدة البيانات
+    await foodBox
+        .clear(); // مسح الكاش القديم فوراً لضمان الجلب المباشر واللحظي من قاعدة البيانات
     await offersBox.clear();
   } catch (_) {}
-  
+
   await SupabaseManager.init();
   final client = SupabaseManager.client;
   final user = client?.auth.currentUser;
@@ -75,7 +76,7 @@ Future<void> main() async {
 
   runApp(
     AhlnaDaquqApp(
-      showLoginFirst: showLogin, 
+      showLoginFirst: showLogin,
       initialProfile: initialProfile,
       themeController: themeController,
     ),
@@ -107,7 +108,7 @@ class AhlnaDaquqApp extends StatelessWidget {
         profile.set(name: name, phone: phone, address: address);
       }
     }
-    
+
     // تحميل صورة البروفايل عند بدء التطبيق
     Storage.loadProfileImage().then((path) {
       if (path != null && path.isNotEmpty) {
@@ -189,7 +190,10 @@ class AhlnaDaquqApp extends StatelessWidget {
                     ),
                     errorBorder: OutlineInputBorder(
                       borderRadius: BorderRadius.circular(16),
-                      borderSide: const BorderSide(color: Colors.redAccent, width: 1),
+                      borderSide: const BorderSide(
+                        color: Colors.redAccent,
+                        width: 1,
+                      ),
                     ),
                   ),
                   elevatedButtonTheme: ElevatedButtonThemeData(
@@ -240,145 +244,157 @@ class AhlnaDaquqApp extends StatelessWidget {
                 // 🎨 ثيم HyperMart (أخضر عصري + خلفية نظيفة)
                 // ============================================================
                 theme: ThemeData(
-            useMaterial3: true,
-            brightness: Brightness.light,
+                  useMaterial3: true,
+                  brightness: Brightness.light,
 
-            // 1. اللون الرئيسي (HyperMart Green)
-            // اذا كان اللون في الرابط مختلف، فقط غير هذا الكود (0xFF23AA49) للون الذي تريده
-            primaryColor: const Color(0xFF23AA49),
+                  // 1. اللون الرئيسي (HyperMart Green)
+                  // اذا كان اللون في الرابط مختلف، فقط غير هذا الكود (0xFF23AA49) للون الذي تريده
+                  primaryColor: const Color(0xFF23AA49),
 
-            // خلفية رمادية فاتحة جداً (Cool Gray)
-            scaffoldBackgroundColor: const Color(0xFFF6F7F9),
+                  // خلفية رمادية فاتحة جداً (Cool Gray)
+                  scaffoldBackgroundColor: const Color(0xFFF6F7F9),
 
-            // 2. مخطط الألوان
-            colorScheme: const ColorScheme.light(
-              primary: Color(0xFF23AA49), // الأخضر
-              secondary: Color(0xFF23AA49),
-              surface: Colors.white, // لون البطاقات أبيض ناصع
-              onSurface: Color(0xFF1B1B1B), // لون النصوص أسود غامق
-              onPrimary: Colors.white, // لون النص داخل الزر الأخضر
-              outline: Color(0xFFE1E1E1), // لون الحدود فاتح
-            ),
+                  // 2. مخطط الألوان
+                  colorScheme: const ColorScheme.light(
+                    primary: Color(0xFF23AA49), // الأخضر
+                    secondary: Color(0xFF23AA49),
+                    surface: Colors.white, // لون البطاقات أبيض ناصع
+                    onSurface: Color(0xFF1B1B1B), // لون النصوص أسود غامق
+                    onPrimary: Colors.white, // لون النص داخل الزر الأخضر
+                    outline: Color(0xFFE1E1E1), // لون الحدود فاتح
+                  ),
 
-            // 3. شريط العنوان (AppBar)
-            appBarTheme: const AppBarTheme(
-              backgroundColor: Colors.white, // خلفية بيضاء
-              foregroundColor: Color(0xFF1B1B1B), // أيقونات ونص أسود
-              elevation: 0,
-              centerTitle: true,
-              surfaceTintColor: Colors.transparent,
-              iconTheme: IconThemeData(color: Color(0xFF1B1B1B)),
-              titleTextStyle: TextStyle(
-                color: Color(0xFF1B1B1B),
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-                fontFamily: 'Cairo', // اذا كنت تستخدم خط معين
-              ),
-            ),
+                  // 3. شريط العنوان (AppBar)
+                  appBarTheme: const AppBarTheme(
+                    backgroundColor: Colors.white, // خلفية بيضاء
+                    foregroundColor: Color(0xFF1B1B1B), // أيقونات ونص أسود
+                    elevation: 0,
+                    centerTitle: true,
+                    surfaceTintColor: Colors.transparent,
+                    iconTheme: IconThemeData(color: Color(0xFF1B1B1B)),
+                    titleTextStyle: TextStyle(
+                      color: Color(0xFF1B1B1B),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      fontFamily: 'Cairo', // اذا كنت تستخدم خط معين
+                    ),
+                  ),
 
-            // 4. الشريط السفلي (Bottom Navigation)
-            bottomNavigationBarTheme: const BottomNavigationBarThemeData(
-              backgroundColor: Colors.white,
-              selectedItemColor: Color.fromARGB(255, 67, 179, 33), // أخضر عند الاختيار
-              unselectedItemColor: Color(0xFF9E9E9E), // رمادي عند عدم الاختيار
-              elevation: 15,
-              type: BottomNavigationBarType.fixed,
-              showUnselectedLabels: true,
-            ),
+                  // 4. الشريط السفلي (Bottom Navigation)
+                  bottomNavigationBarTheme: const BottomNavigationBarThemeData(
+                    backgroundColor: Colors.white,
+                    selectedItemColor: Color.fromARGB(
+                      255,
+                      67,
+                      179,
+                      33,
+                    ), // أخضر عند الاختيار
+                    unselectedItemColor: Color(
+                      0xFF9E9E9E,
+                    ), // رمادي عند عدم الاختيار
+                    elevation: 15,
+                    type: BottomNavigationBarType.fixed,
+                    showUnselectedLabels: true,
+                  ),
 
-            // 5. حقول الإدخال (Inputs) - مثل تصميم فيجما
-            inputDecorationTheme: InputDecorationTheme(
-              filled: true,
-              fillColor: const Color(0xFFF3F3F3), // رمادي فاتح جداً
-              hintStyle: const TextStyle(color: Color(0xFFBDBDBD)),
-              contentPadding: const EdgeInsets.symmetric(
-                horizontal: 20,
-                vertical: 16,
-              ),
-              prefixIconColor: const Color(0xFF23AA49),
-              suffixIconColor: const Color(0xFFBDBDBD),
+                  // 5. حقول الإدخال (Inputs) - مثل تصميم فيجما
+                  inputDecorationTheme: InputDecorationTheme(
+                    filled: true,
+                    fillColor: const Color(0xFFF3F3F3), // رمادي فاتح جداً
+                    hintStyle: const TextStyle(color: Color(0xFFBDBDBD)),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 16,
+                    ),
+                    prefixIconColor: const Color(0xFF23AA49),
+                    suffixIconColor: const Color(0xFFBDBDBD),
 
-              // الحدود
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none, // بدون حدود افتراضية
-              ),
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: BorderSide.none,
-              ),
-              focusedBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(
-                  color: Color(0xFF23AA49),
-                  width: 1.5,
+                    // الحدود
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none, // بدون حدود افتراضية
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: BorderSide.none,
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF23AA49),
+                        width: 1.5,
+                      ),
+                    ),
+                    errorBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      borderSide: const BorderSide(
+                        color: Colors.redAccent,
+                        width: 1,
+                      ),
+                    ),
+                  ),
+
+                  // 6. الأزرار (Buttons)
+                  elevatedButtonTheme: ElevatedButtonThemeData(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF23AA49),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        vertical: 16,
+                        horizontal: 24,
+                      ),
+                      textStyle: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
+                    ),
+                  ),
+
+                  // 7. النصوص (Typography)
+                  textTheme: const TextTheme(
+                    headlineSmall: TextStyle(
+                      color: Color(0xFF1B1B1B),
+                      fontWeight: FontWeight.bold,
+                    ),
+                    titleLarge: TextStyle(
+                      color: Color(0xFF1B1B1B),
+                      fontWeight: FontWeight.bold,
+                    ),
+                    bodyLarge: TextStyle(color: Color(0xFF1B1B1B)),
+                    bodyMedium: TextStyle(color: Color(0xFF424242)),
+                  ),
+
+                  // 8. القوائم
+                  dialogTheme: DialogThemeData(
+                    backgroundColor: Colors.white,
+                    surfaceTintColor: Colors.white,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    titleTextStyle: const TextStyle(
+                      color: Color(0xFF1B1B1B),
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
-              ),
-              errorBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(16),
-                borderSide: const BorderSide(color: Colors.redAccent, width: 1),
-              ),
-            ),
 
-            // 6. الأزرار (Buttons)
-            elevatedButtonTheme: ElevatedButtonThemeData(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF23AA49),
-                foregroundColor: Colors.white,
-                elevation: 0,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                padding: const EdgeInsets.symmetric(
-                  vertical: 16,
-                  horizontal: 24,
-                ),
-                textStyle: const TextStyle(
-                  fontWeight: FontWeight.bold,
-                  fontSize: 16,
-                ),
-              ),
-            ),
-
-            // 7. النصوص (Typography)
-            textTheme: const TextTheme(
-              headlineSmall: TextStyle(
-                color: Color(0xFF1B1B1B),
-                fontWeight: FontWeight.bold,
-              ),
-              titleLarge: TextStyle(
-                color: Color(0xFF1B1B1B),
-                fontWeight: FontWeight.bold,
-              ),
-              bodyLarge: TextStyle(color: Color(0xFF1B1B1B)),
-              bodyMedium: TextStyle(color: Color(0xFF424242)),
-            ),
-
-            // 8. القوائم
-            dialogTheme: DialogThemeData(
-              backgroundColor: Colors.white,
-              surfaceTintColor: Colors.white,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              titleTextStyle: const TextStyle(
-                color: Color(0xFF1B1B1B),
-                fontSize: 20,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-
-          // ============================================================
-          locale: const Locale('ar'),
-          supportedLocales: const [Locale('ar'), Locale('en')],
-          localizationsDelegates: const [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          home: showLoginFirst ? const LoginScreen() : const RootScaffold(),
-        );
+                // ============================================================
+                locale: const Locale('ar'),
+                supportedLocales: const [Locale('ar'), Locale('en')],
+                localizationsDelegates: const [
+                  GlobalMaterialLocalizations.delegate,
+                  GlobalWidgetsLocalizations.delegate,
+                  GlobalCupertinoLocalizations.delegate,
+                ],
+                home: showLoginFirst
+                    ? const LoginScreen()
+                    : const RootScaffold(),
+              );
             },
           ),
         ),
@@ -393,7 +409,6 @@ class RootScaffold extends StatefulWidget {
   @override
   State<RootScaffold> createState() => _RootScaffoldState();
 }
-
 
 class _RootScaffoldState extends State<RootScaffold> {
   int _index = 0;
@@ -417,7 +432,7 @@ class _RootScaffoldState extends State<RootScaffold> {
         decoration: BoxDecoration(
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withOpacity(0.05),
+              color: Colors.black.withValues(alpha: 0.05),
               blurRadius: 20,
               offset: const Offset(0, -5),
             ),

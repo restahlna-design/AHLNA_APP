@@ -14,10 +14,10 @@ void main() async {
     final body = await resp.transform(utf8.decoder).join();
     final data = jsonDecode(body);
     final build = data['build'] ?? data;
-    
+
     print('BUILD STATUS: ${build['status']}');
     print('ALL KEYS IN BUILD: ${build.keys.toList()}');
-    
+
     if (build['artifacts'] != null) {
       print('ARTIFACTS FIELD: ${jsonEncode(build['artifacts'])}');
     }
@@ -27,13 +27,20 @@ void main() async {
       if (obj is Map) {
         obj.forEach((key, val) => findUrls(val, '$path.$key'));
       } else if (obj is List) {
-        for (var i = 0; i < obj.length; i++) findUrls(obj[i], '$path[$i]');
+        for (var i = 0; i < obj.length; i++) {
+          findUrls(obj[i], '$path[$i]');
+        }
       } else if (obj is String) {
-        if (obj.contains('.ipa') || obj.contains('.zip') || obj.contains('artifact') || obj.contains('Customer') || obj.contains('Admin')) {
+        if (obj.contains('.ipa') ||
+            obj.contains('.zip') ||
+            obj.contains('artifact') ||
+            obj.contains('Customer') ||
+            obj.contains('Admin')) {
           print('FOUND MATCH at $path: $obj');
         }
       }
     }
+
     findUrls(build);
 
     // Also print out the log of step 4 to confirm what files were exported!
@@ -49,7 +56,12 @@ void main() async {
           final logBody = await logResp.transform(utf8.decoder).join();
           final lines = logBody.split('\n');
           for (var l in lines) {
-            if (l.contains('Customer_App') || l.contains('Admin_App') || l.contains('Success') || l.contains('Error') || l.contains('export directory') || l.contains('.ipa')) {
+            if (l.contains('Customer_App') ||
+                l.contains('Admin_App') ||
+                l.contains('Success') ||
+                l.contains('Error') ||
+                l.contains('export directory') ||
+                l.contains('.ipa')) {
               print(l);
             }
           }

@@ -28,8 +28,7 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen>
-    with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final repo = FoodRepository();
   final catRepo = CategoryRepository();
   // bool _prefetched = false; // Removed unused field
@@ -50,6 +49,8 @@ class _HomeScreenState extends State<HomeScreen>
   StreamSubscription<List<CategoryModel>>? _catStream;
   final GlobalKey _cartKey = GlobalKey();
   final Box _offersBox = Hive.box('offers_cache');
+  List<FoodItem> _allFoodItems = FoodRepository.defaultFallbackItems;
+  StreamSubscription<List<FoodItem>>? _foodStream;
 
   String _categoryKey(CategoryModel m) {
     final en = m.nameEn.trim();
@@ -66,6 +67,8 @@ class _HomeScreenState extends State<HomeScreen>
     _initializeApp();
     _loadCategories();
     _subscribeCategories();
+    _loadFoodItems();
+    _subscribeFoodItems();
   }
 
   Future<void> _loadCategories() async {
@@ -74,22 +77,34 @@ class _HomeScreenState extends State<HomeScreen>
       if (mounted) {
         setState(() {
           if (cats.isEmpty) {
-             // Fallback
-             _allCategories = [
-               const CategoryModel(id: 1, nameEn: 'Lahm Bi Ajeen', nameAr: 'لحم بعجين'),
-               const CategoryModel(id: 2, nameEn: 'Pizza', nameAr: 'بيتزا'),
-               const CategoryModel(id: 3, nameEn: 'Drinks', nameAr: 'مشروبات'),
-             ];
+            // Fallback
+            _allCategories = [
+              const CategoryModel(
+                id: 1,
+                nameEn: 'Lahm Bi Ajeen',
+                nameAr: 'لحم بعجين',
+              ),
+              const CategoryModel(id: 2, nameEn: 'Pizza', nameAr: 'بيتزا'),
+              const CategoryModel(id: 3, nameEn: 'Drinks', nameAr: 'مشروبات'),
+            ];
           } else {
-             _allCategories = cats;
+            _allCategories = cats;
           }
-          _parentCategories = _allCategories.where((c) => c.parentId == null).toList();
-          _tabController = TabController(length: _parentCategories.length, vsync: this);
+          _parentCategories = _allCategories
+              .where((c) => c.parentId == null)
+              .toList();
+          _tabController = TabController(
+            length: _parentCategories.length,
+            vsync: this,
+          );
           _loadingCategories = false;
           if (_selectedParent == null && _parentCategories.isNotEmpty) {
             _selectedParent = _parentCategories.first;
-            final children = _allCategories.where((c) => c.parentId == _selectedParent!.id).toList();
-            if (children.isNotEmpty && _selectedChildForParent[_selectedParent!.id] == null) {
+            final children = _allCategories
+                .where((c) => c.parentId == _selectedParent!.id)
+                .toList();
+            if (children.isNotEmpty &&
+                _selectedChildForParent[_selectedParent!.id] == null) {
               _selectedChildForParent[_selectedParent!.id] = children.first;
             }
           }
@@ -101,17 +116,27 @@ class _HomeScreenState extends State<HomeScreen>
       if (mounted) {
         setState(() {
           _allCategories = [
-             const CategoryModel(id: 1, nameEn: 'Lahm Bi Ajeen', nameAr: 'لحم بعجين'),
-             const CategoryModel(id: 2, nameEn: 'Pizza', nameAr: 'بيتزا'),
-             const CategoryModel(id: 3, nameEn: 'Drinks', nameAr: 'مشروبات'),
+            const CategoryModel(
+              id: 1,
+              nameEn: 'Lahm Bi Ajeen',
+              nameAr: 'لحم بعجين',
+            ),
+            const CategoryModel(id: 2, nameEn: 'Pizza', nameAr: 'بيتزا'),
+            const CategoryModel(id: 3, nameEn: 'Drinks', nameAr: 'مشروبات'),
           ];
           _parentCategories = _allCategories;
-          _tabController = TabController(length: _parentCategories.length, vsync: this);
+          _tabController = TabController(
+            length: _parentCategories.length,
+            vsync: this,
+          );
           _loadingCategories = false;
           if (_selectedParent == null && _parentCategories.isNotEmpty) {
             _selectedParent = _parentCategories.first;
-            final children = _allCategories.where((c) => c.parentId == _selectedParent!.id).toList();
-            if (children.isNotEmpty && _selectedChildForParent[_selectedParent!.id] == null) {
+            final children = _allCategories
+                .where((c) => c.parentId == _selectedParent!.id)
+                .toList();
+            if (children.isNotEmpty &&
+                _selectedChildForParent[_selectedParent!.id] == null) {
               _selectedChildForParent[_selectedParent!.id] = children.first;
             }
           }
@@ -126,18 +151,46 @@ class _HomeScreenState extends State<HomeScreen>
       if (!mounted) return;
       setState(() {
         _allCategories = cats;
-        _parentCategories = _allCategories.where((c) => c.parentId == null).toList();
+        _parentCategories = _allCategories
+            .where((c) => c.parentId == null)
+            .toList();
         if (_selectedParent == null && _parentCategories.isNotEmpty) {
           _selectedParent = _parentCategories.first;
         }
         final p = _selectedParent;
         if (p != null) {
-          final children = _allCategories.where((c) => c.parentId == p.id).toList();
+          final children = _allCategories
+              .where((c) => c.parentId == p.id)
+              .toList();
           if (children.isNotEmpty && _selectedChildForParent[p.id] == null) {
             _selectedChildForParent[p.id] = children.first;
           }
         }
       });
+    });
+  }
+
+  Future<void> _loadFoodItems() async {
+    try {
+      final items = await repo.fetchAllFresh();
+      if (mounted && items.isNotEmpty) {
+        setState(() {
+          _allFoodItems = items;
+        });
+      }
+    } catch (e) {
+      print('Error loading food items: $e');
+    }
+  }
+
+  void _subscribeFoodItems() {
+    _foodStream?.cancel();
+    _foodStream = repo.streamAllFoodItems().listen((items) {
+      if (mounted && items.isNotEmpty) {
+        setState(() {
+          _allFoodItems = items;
+        });
+      }
     });
   }
 
@@ -168,7 +221,7 @@ class _HomeScreenState extends State<HomeScreen>
         _offerLink.value = link;
         await _offersBox.put('offer_link', link);
       }
-      
+
       _offerSub = _offersRepo.liveLink().listen((l) {
         if (l != null) {
           _offerLink.value = l;
@@ -237,7 +290,9 @@ class _HomeScreenState extends State<HomeScreen>
     if (_loadingCategories || _tabController == null) {
       return Scaffold(
         backgroundColor: theme.scaffoldBackgroundColor,
-        body: Center(child: CircularProgressIndicator(color: theme.primaryColor)),
+        body: Center(
+          child: CircularProgressIndicator(color: theme.primaryColor),
+        ),
       );
     }
 
@@ -245,9 +300,8 @@ class _HomeScreenState extends State<HomeScreen>
     final profile = ProfileProvider.of(context);
 
     return Scaffold(
-      
       backgroundColor: theme.scaffoldBackgroundColor,
-      
+
       // --- AppBar ---
       appBar: AppBar(
         toolbarHeight: 80,
@@ -262,7 +316,7 @@ class _HomeScreenState extends State<HomeScreen>
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withOpacity(0.05),
+                color: Colors.black.withValues(alpha: 0.05),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -319,7 +373,9 @@ class _HomeScreenState extends State<HomeScreen>
                     key: _cartKey,
                     icon: Icon(
                       Icons.shopping_cart_outlined,
-                      color: hasItems ? Colors.redAccent : theme.iconTheme.color,
+                      color: hasItems
+                          ? Colors.redAccent
+                          : theme.iconTheme.color,
                       size: 28,
                     ),
                     onPressed: () {
@@ -396,7 +452,9 @@ class _HomeScreenState extends State<HomeScreen>
         child: Row(
           children: _parentCategories.map((p) {
             final isActive = _selectedParent?.id == p.id;
-            final children = _allCategories.where((c) => c.parentId == p.id).toList();
+            final children = _allCategories
+                .where((c) => c.parentId == p.id)
+                .toList();
             if (children.isNotEmpty) {
               return Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
@@ -409,24 +467,37 @@ class _HomeScreenState extends State<HomeScreen>
                     });
                   },
                   itemBuilder: (context) => children
-                      .map((c) => PopupMenuItem<CategoryModel>(
-                            value: c,
-                            child: Text(c.nameAr),
-                          ))
+                      .map(
+                        (c) => PopupMenuItem<CategoryModel>(
+                          value: c,
+                          child: Text(c.nameAr),
+                        ),
+                      )
                       .toList(),
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 8,
+                    ),
                     decoration: BoxDecoration(
-                      color: isActive ? theme.primaryColor.withOpacity(0.12) : theme.cardColor,
+                      color: isActive
+                          ? theme.primaryColor.withValues(alpha: 0.12)
+                          : theme.cardColor,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: isActive ? theme.primaryColor : Colors.grey.shade300),
+                      border: Border.all(
+                        color: isActive
+                            ? theme.primaryColor
+                            : Colors.grey.shade300,
+                      ),
                     ),
                     child: Row(
                       children: [
                         Text(
                           p.nameAr,
                           style: TextStyle(
-                            color: isActive ? theme.primaryColor : theme.textTheme.bodyLarge?.color,
+                            color: isActive
+                                ? theme.primaryColor
+                                : theme.textTheme.bodyLarge?.color,
                             fontWeight: FontWeight.w600,
                           ),
                         ),
@@ -453,16 +524,27 @@ class _HomeScreenState extends State<HomeScreen>
                 },
                 borderRadius: BorderRadius.circular(20),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 12,
+                    vertical: 8,
+                  ),
                   decoration: BoxDecoration(
-                    color: isActive ? theme.primaryColor.withOpacity(0.12) : theme.cardColor,
+                    color: isActive
+                        ? theme.primaryColor.withValues(alpha: 0.12)
+                        : theme.cardColor,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: isActive ? theme.primaryColor : Colors.grey.shade300),
+                    border: Border.all(
+                      color: isActive
+                          ? theme.primaryColor
+                          : Colors.grey.shade300,
+                    ),
                   ),
                   child: Text(
                     p.nameAr,
                     style: TextStyle(
-                      color: isActive ? theme.primaryColor : theme.textTheme.bodyLarge?.color,
+                      color: isActive
+                          ? theme.primaryColor
+                          : theme.textTheme.bodyLarge?.color,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -476,25 +558,36 @@ class _HomeScreenState extends State<HomeScreen>
   }
 
   Widget _buildContentView() {
-    final p = _selectedParent ?? (_parentCategories.isNotEmpty ? _parentCategories.first : null);
+    final p =
+        _selectedParent ??
+        (_parentCategories.isNotEmpty ? _parentCategories.first : null);
     if (p == null) {
       return const SizedBox();
     }
     final children = _allCategories.where((c) => c.parentId == p.id).toList();
-    final current = children.isNotEmpty ? (_selectedChildForParent[p.id] ?? children.first) : p;
+    final current = children.isNotEmpty
+        ? (_selectedChildForParent[p.id] ?? children.first)
+        : p;
+    final catKey = _categoryKey(current);
+    final filtered = repo.filterByCategory(_allFoodItems, catKey);
     return CategoryContent(
       key: ValueKey('cat-${current.id}'),
-      category: _categoryKey(current),
-      initialItems: const [],
-      stream: repo.liveByCategory(_categoryKey(current)),
+      category: catKey,
+      initialItems: filtered,
+      stream: Stream.value(filtered),
       search: _search,
       offerLink: _offerLink,
       cartKey: _cartKey,
     );
   }
 
-  Widget _buildSubCategoryView(CategoryModel parent, List<CategoryModel> children) {
+  Widget _buildSubCategoryView(
+    CategoryModel parent,
+    List<CategoryModel> children,
+  ) {
     final selected = _selectedChildForParent[parent.id];
+    final catKey = selected != null ? _categoryKey(selected) : '';
+    final filtered = selected != null ? repo.filterByCategory(_allFoodItems, catKey) : <FoodItem>[];
     return Column(
       children: [
         GridView.builder(
@@ -517,12 +610,18 @@ class _HomeScreenState extends State<HomeScreen>
               },
               child: Container(
                 decoration: BoxDecoration(
-                  color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.12) : Theme.of(context).cardColor,
+                  color: isSelected
+                      ? Theme.of(context).primaryColor.withValues(alpha: 0.12)
+                      : Theme.of(context).cardColor,
                   borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: isSelected ? Theme.of(context).primaryColor : Colors.grey.shade200),
+                  border: Border.all(
+                    color: isSelected
+                        ? Theme.of(context).primaryColor
+                        : Colors.grey.shade200,
+                  ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.05),
+                      color: Colors.black.withValues(alpha: 0.05),
                       blurRadius: 8,
                       offset: const Offset(0, 4),
                     ),
@@ -534,8 +633,14 @@ class _HomeScreenState extends State<HomeScreen>
                     if (child.imageUrl != null && child.imageUrl!.isNotEmpty)
                       Expanded(
                         child: ClipRRect(
-                          borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                          child: CachedNetworkImage(imageUrl: child.imageUrl!, fit: BoxFit.cover, width: double.infinity),
+                          borderRadius: const BorderRadius.vertical(
+                            top: Radius.circular(12),
+                          ),
+                          child: CachedNetworkImage(
+                            imageUrl: child.imageUrl!,
+                            fit: BoxFit.cover,
+                            width: double.infinity,
+                          ),
                         ),
                       )
                     else
@@ -544,7 +649,13 @@ class _HomeScreenState extends State<HomeScreen>
                       padding: const EdgeInsets.all(8.0),
                       child: Text(
                         child.nameAr,
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13, color: isSelected ? Theme.of(context).primaryColor : null),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 13,
+                          color: isSelected
+                              ? Theme.of(context).primaryColor
+                              : null,
+                        ),
                         textAlign: TextAlign.center,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -562,9 +673,9 @@ class _HomeScreenState extends State<HomeScreen>
               ? Center(child: Text('اختر قسمًا من الأعلى'))
               : CategoryContent(
                   key: ValueKey('cat-${selected.id}'),
-                  category: _categoryKey(selected),
-                  initialItems: const [],
-                  stream: repo.liveByCategory(_categoryKey(selected)),
+                  category: catKey,
+                  initialItems: filtered,
+                  stream: Stream.value(filtered),
                   search: _search,
                   offerLink: _offerLink,
                   cartKey: _cartKey,
@@ -600,7 +711,10 @@ class _HomeScreenState extends State<HomeScreen>
                   width: double.infinity,
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
-                      colors: [primaryColor, primaryColor.withOpacity(0.8)],
+                      colors: [
+                        primaryColor,
+                        primaryColor.withValues(alpha: 0.8),
+                      ],
                       begin: Alignment.topRight,
                       end: Alignment.bottomLeft,
                     ),
@@ -615,7 +729,7 @@ class _HomeScreenState extends State<HomeScreen>
                           border: Border.all(color: Colors.white, width: 3),
                           boxShadow: [
                             BoxShadow(
-                              color: Colors.black.withOpacity(0.1),
+                              color: Colors.black.withValues(alpha: 0.1),
                               blurRadius: 10,
                             ),
                           ],
@@ -623,10 +737,14 @@ class _HomeScreenState extends State<HomeScreen>
                         child: CircleAvatar(
                           radius: 40,
                           backgroundColor: Colors.white,
-                          backgroundImage: (profile.imagePath != null && profile.imagePath!.isNotEmpty)
+                          backgroundImage:
+                              (profile.imagePath != null &&
+                                  profile.imagePath!.isNotEmpty)
                               ? FileImage(File(profile.imagePath!))
                               : null,
-                          child: (profile.imagePath == null || profile.imagePath!.isEmpty)
+                          child:
+                              (profile.imagePath == null ||
+                                  profile.imagePath!.isEmpty)
                               ? const Icon(
                                   Icons.person,
                                   size: 45,
@@ -684,7 +802,11 @@ class _HomeScreenState extends State<HomeScreen>
                   title: 'عنواننا',
                   onTap: () {
                     Navigator.pop(context);
-                    showModernSnackBar(context, 'كركوك - داقوق مقابيل متنزة داقوق', icon: Icons.location_on);
+                    showModernSnackBar(
+                      context,
+                      'كركوك - داقوق مقابيل متنزة داقوق',
+                      icon: Icons.location_on,
+                    );
                   },
                 ),
                 const SizedBox(height: 10),
@@ -736,19 +858,23 @@ class _HomeScreenState extends State<HomeScreen>
     return Container(
       decoration: BoxDecoration(
         color: isHighlight
-            ? theme.primaryColor.withOpacity(0.1)
+            ? theme.primaryColor.withValues(alpha: 0.1)
             : Colors.transparent,
         borderRadius: BorderRadius.circular(12),
       ),
       child: ListTile(
         leading: Icon(
           icon,
-          color: isHighlight ? theme.primaryColor : theme.iconTheme.color?.withOpacity(0.7) ?? Colors.grey,
+          color: isHighlight
+              ? theme.primaryColor
+              : theme.iconTheme.color?.withValues(alpha: 0.7) ?? Colors.grey,
         ),
         title: Text(
           title,
           style: TextStyle(
-            color: isHighlight ? theme.primaryColor : theme.textTheme.bodyLarge?.color,
+            color: isHighlight
+                ? theme.primaryColor
+                : theme.textTheme.bodyLarge?.color,
             fontWeight: isHighlight ? FontWeight.bold : FontWeight.w500,
           ),
         ),
@@ -771,15 +897,23 @@ class _HomeScreenState extends State<HomeScreen>
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: const [
-                Text('هذا التطبيق تم تطويره وبرمجته بالكامل من قبل المطوّر: حسين ناصر.'),
+                Text(
+                  'هذا التطبيق تم تطويره وبرمجته بالكامل من قبل المطوّر: حسين ناصر.',
+                ),
                 SizedBox(height: 8),
-                Text('تم تصميم التطبيق بعناية لتقديم أفضل تجربة للمستخدم، مع التركيز على السهولة والسرعة والدقة في عرض المحتوى.'),
+                Text(
+                  'تم تصميم التطبيق بعناية لتقديم أفضل تجربة للمستخدم، مع التركيز على السهولة والسرعة والدقة في عرض المحتوى.',
+                ),
                 SizedBox(height: 8),
-                Text('يتم تحديث التطبيق وتحسينه بشكل مستمر لضمان أداء أفضل وتوفير مزايا جديدة تلائم احتياجات المستخدمين.'),
+                Text(
+                  'يتم تحديث التطبيق وتحسينه بشكل مستمر لضمان أداء أفضل وتوفير مزايا جديدة تلائم احتياجات المستخدمين.',
+                ),
                 SizedBox(height: 8),
                 Text('حقوق الملكية محفوظة © 2025 – حسين ناصر'),
                 SizedBox(height: 8),
-                Text('جميع حقوق التصميم والبرمجة والتطوير محفوظة ولا يسمح بإعادة نشر التطبيق أو تعديله دون إذن.'),
+                Text(
+                  'جميع حقوق التصميم والبرمجة والتطوير محفوظة ولا يسمح بإعادة نشر التطبيق أو تعديله دون إذن.',
+                ),
                 SizedBox(height: 12),
                 Text('للتواصل'),
               ],
@@ -825,7 +959,9 @@ class _HomeScreenState extends State<HomeScreen>
                 IconButton(
                   tooltip: 'Facebook',
                   onPressed: () async {
-                    final uri = Uri.parse('https://www.facebook.com/abu.ghada.785116?locale=ar_AR');
+                    final uri = Uri.parse(
+                      'https://www.facebook.com/abu.ghada.785116?locale=ar_AR',
+                    );
                     try {
                       final ok = await launchUrl(
                         uri,
@@ -875,6 +1011,7 @@ class _HomeScreenState extends State<HomeScreen>
     _offerSub?.cancel();
     _offerLink.dispose();
     _catStream?.cancel();
+    _foodStream?.cancel();
     super.dispose();
   }
 }
@@ -993,7 +1130,7 @@ class _CategoryPageState extends State<_CategoryPage>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -1021,7 +1158,9 @@ class _CategoryPageState extends State<_CategoryPage>
                 item.name,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: disabled ? Colors.grey : theme.textTheme.bodyLarge?.color,
+                  color: disabled
+                      ? Colors.grey
+                      : theme.textTheme.bodyLarge?.color,
                 ),
               ),
               subtitle: Text(
@@ -1045,7 +1184,12 @@ class _CategoryPageState extends State<_CategoryPage>
                   : null,
               onTap: () {
                 if (disabled) {
-                  showModernSnackBar(context, 'تم نفاذ الكمية ⚠️', color: Colors.grey, icon: Icons.warning_amber_rounded);
+                  showModernSnackBar(
+                    context,
+                    'تم نفاذ الكمية ⚠️',
+                    color: Colors.grey,
+                    icon: Icons.warning_amber_rounded,
+                  );
                   return;
                 }
                 Navigator.push(
@@ -1118,7 +1262,9 @@ class _CategoryPageState extends State<_CategoryPage>
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.15),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.15,
+                                          ),
                                           blurRadius: 20,
                                           offset: const Offset(0, 10),
                                         ),
@@ -1128,9 +1274,10 @@ class _CategoryPageState extends State<_CategoryPage>
                                     child: CachedNetworkImage(
                                       imageUrl: item.imageUrl,
                                       fit: BoxFit.cover,
-                                      placeholder: (context, url) => const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
+                                      placeholder: (context, url) =>
+                                          const Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
                                       errorWidget: (context, url, error) =>
                                           Container(
                                             color: Colors.grey[200],
@@ -1190,7 +1337,7 @@ class _CategoryPageState extends State<_CategoryPage>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.08),
+                  color: Colors.black.withValues(alpha: 0.08),
                   blurRadius: 30,
                   offset: const Offset(0, -5),
                 ),
@@ -1232,23 +1379,38 @@ class _CategoryPageState extends State<_CategoryPage>
                       ),
                     ),
                     CircleAvatar(
-                      backgroundColor:
-                          dimmed ? Colors.grey : theme.primaryColor,
+                      backgroundColor: dimmed
+                          ? Colors.grey
+                          : theme.primaryColor,
                       child: Builder(
                         builder: (btnContext) {
                           return IconButton(
                             icon: const Icon(Icons.add, color: Colors.white),
                             onPressed: dimmed
                                 ? () {
-                                    showModernSnackBar(context, 'تم نفاذ الكمية ⚠️', color: Colors.grey, icon: Icons.warning_amber_rounded);
+                                    showModernSnackBar(
+                                      context,
+                                      'تم نفاذ الكمية ⚠️',
+                                      color: Colors.grey,
+                                      icon: Icons.warning_amber_rounded,
+                                    );
                                   }
                                 : () async {
-                                    final connectivityResult = await Connectivity().checkConnectivity();
-                                    if (connectivityResult.contains(ConnectivityResult.none)) {
-                                      showModernSnackBar(context, 'يرجى التحقق من اتصال الإنترنت للطلب 🌐', color: Colors.redAccent, icon: Icons.wifi_off);
+                                    final connectivityResult =
+                                        await Connectivity()
+                                            .checkConnectivity();
+                                    if (connectivityResult.contains(
+                                      ConnectivityResult.none,
+                                    )) {
+                                      showModernSnackBar(
+                                        context,
+                                        'يرجى التحقق من اتصال الإنترنت للطلب 🌐',
+                                        color: Colors.redAccent,
+                                        icon: Icons.wifi_off,
+                                      );
                                       return;
                                     }
-                                    
+
                                     FlyAnimation.run(
                                       context,
                                       cartKey: widget.cartKey,
@@ -1260,7 +1422,7 @@ class _CategoryPageState extends State<_CategoryPage>
                                     );
                                   },
                           );
-                        }
+                        },
                       ),
                     ),
                   ],
@@ -1286,7 +1448,7 @@ class _CategoryPageState extends State<_CategoryPage>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -1327,7 +1489,7 @@ class _CategoryPageState extends State<_CategoryPage>
                     _buildPlaceholderWidget(theme),
                     Center(
                       child: CircularProgressIndicator(
-                        color: theme.primaryColor.withOpacity(0.5),
+                        color: theme.primaryColor.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -1344,10 +1506,10 @@ class _CategoryPageState extends State<_CategoryPage>
   Widget _buildPlaceholderWidget(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.primaryColor.withOpacity(0.1),
+        color: theme.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: theme.primaryColor.withOpacity(0.3),
+          color: theme.primaryColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -1372,7 +1534,7 @@ class _CategoryPageState extends State<_CategoryPage>
             Text(
               "قريباً...",
               style: TextStyle(
-                color: theme.primaryColor.withOpacity(0.7),
+                color: theme.primaryColor.withValues(alpha: 0.7),
                 fontSize: 12,
               ),
             ),

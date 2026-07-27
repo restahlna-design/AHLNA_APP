@@ -94,9 +94,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         ),
         backgroundColor: color,
         behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
         // توسيط الإشعار
         margin: EdgeInsets.only(
           bottom: 50,
@@ -119,7 +117,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     try {
       await repo.setStatus(id, 'cooking');
       if (mounted) {
-        _showModernSnackBar('جاري التحضير 👨‍🍳', Colors.blueAccent, Icons.outdoor_grill);
+        _showModernSnackBar(
+          'جاري التحضير 👨‍🍳',
+          Colors.blueAccent,
+          Icons.outdoor_grill,
+        );
       }
     } catch (e) {
       /*...*/
@@ -147,7 +149,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     try {
       await repo.setStatus(id, 'completed');
       if (mounted) {
-        _showModernSnackBar('تم تسليم الطلب ✅', primaryColor, Icons.check_circle);
+        _showModernSnackBar(
+          'تم تسليم الطلب ✅',
+          primaryColor,
+          Icons.check_circle,
+        );
       }
     } catch (e) {
       /*...*/
@@ -166,7 +172,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       }
     } else {
       if (mounted) {
-        _showModernSnackBar('تعذر فتح الاتصال 📞', Colors.grey, Icons.phone_disabled);
+        _showModernSnackBar(
+          'تعذر فتح الاتصال 📞',
+          Colors.grey,
+          Icons.phone_disabled,
+        );
       }
     }
   }
@@ -206,11 +216,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                         mode: LaunchMode.externalApplication,
                       );
                       if (mounted) {
-                        _showModernSnackBar('تم فتح الملاحة 🗺️', Colors.blue, Icons.navigation);
+                        _showModernSnackBar(
+                          'تم فتح الملاحة 🗺️',
+                          Colors.blue,
+                          Icons.navigation,
+                        );
                       }
                     } catch (_) {
                       if (mounted) {
-                        _showModernSnackBar('تعذر فتح تطبيق الخرائط ⚠️', Colors.orange, Icons.error_outline);
+                        _showModernSnackBar(
+                          'تعذر فتح تطبيق الخرائط ⚠️',
+                          Colors.orange,
+                          Icons.error_outline,
+                        );
                       }
                     }
                   },
@@ -227,11 +245,19 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                         mode: LaunchMode.externalApplication,
                       );
                       if (mounted) {
-                        _showModernSnackBar('تم فتح الملاحة 🗺️', Colors.green, Icons.public);
+                        _showModernSnackBar(
+                          'تم فتح الملاحة 🗺️',
+                          Colors.green,
+                          Icons.public,
+                        );
                       }
                     } catch (_) {
                       if (mounted) {
-                        _showModernSnackBar('تعذر فتح المتصفح ⚠️', Colors.orange, Icons.error_outline);
+                        _showModernSnackBar(
+                          'تعذر فتح المتصفح ⚠️',
+                          Colors.orange,
+                          Icons.error_outline,
+                        );
                       }
                     }
                   },
@@ -280,7 +306,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       }
     }
     if (mounted) {
-      _showModernSnackBar('تعذر فتح تطبيق الخرائط ⚠️', Colors.orange, Icons.error_outline);
+      _showModernSnackBar(
+        'تعذر فتح تطبيق الخرائط ⚠️',
+        Colors.orange,
+        Icons.error_outline,
+      );
     }
   }
 
@@ -345,7 +375,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 maxCrossAxisExtent: 300,
                 crossAxisSpacing: 16,
                 mainAxisSpacing: 16,
-                childAspectRatio: 0.7, 
+                childAspectRatio: 0.7,
               ),
               itemCount: orders.length,
               itemBuilder: (context, index) {
@@ -376,13 +406,13 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         onTap: () => _showDetails(o),
         borderRadius: BorderRadius.circular(14),
         child: Container(
-        height: 145,
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          boxShadow: [
-            BoxShadow(
-                color: Colors.black.withOpacity(0.06),
+          height: 145,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(14),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.06),
                 blurRadius: 10,
                 offset: const Offset(0, 4),
               ),
@@ -548,7 +578,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.08),
+            color: Colors.black.withValues(alpha: 0.08),
             blurRadius: 15,
             offset: const Offset(0, 5),
           ),
@@ -561,7 +591,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: typeColor.withOpacity(0.1),
+              color: typeColor.withValues(alpha: 0.1),
               borderRadius: const BorderRadius.vertical(
                 top: Radius.circular(20),
               ),
@@ -808,7 +838,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                               backgroundColor: Colors.blueAccent,
                               foregroundColor: Colors.white,
                               elevation: 4,
-                              shadowColor: Colors.blueAccent.withOpacity(0.4),
+                              shadowColor: Colors.blueAccent.withValues(
+                                alpha: 0.4,
+                              ),
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(12),
                               ),

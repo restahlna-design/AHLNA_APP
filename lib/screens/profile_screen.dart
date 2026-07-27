@@ -79,7 +79,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(ok ? 'تم حفظ البيانات' : 'تعذر تحديث قاعدة البيانات، تم الحفظ محليًا')),
+        SnackBar(
+          content: Text(
+            ok
+                ? 'تم حفظ البيانات'
+                : 'تعذر تحديث قاعدة البيانات، تم الحفظ محليًا',
+          ),
+        ),
       );
     }
   }
@@ -209,7 +215,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
     // لون البطاقات من الثيم
     final cardColor = Theme.of(context).cardColor;
     // لون الحقول يعتمد على الثيم مع لمسة تمييز (لون باهت من اللون الأساسي)
-    final inputColor = cs.primary.withOpacity(0.08);
+    final inputColor = cs.primary.withValues(alpha: 0.08);
 
     return Scaffold(
       backgroundColor: backgroundColor,
@@ -250,7 +256,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ), // إطار برتقالي
                           boxShadow: [
                             BoxShadow(
-                              color: cs.primary.withOpacity(0.3),
+                              color: cs.primary.withValues(alpha: 0.3),
                               blurRadius: 15,
                               offset: const Offset(0, 5),
                             ),
@@ -266,7 +272,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ? Icon(
                                   Icons.person,
                                   size: 60,
-                                  color: cs.primary.withOpacity(0.7),
+                                  color: cs.primary.withValues(alpha: 0.7),
                                 )
                               : null,
                         ),
@@ -316,7 +322,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ? _phoneController.text
                           : '',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurface.withOpacity(0.6),
+                        color: cs.onSurface.withValues(alpha: 0.6),
                       ),
                     ),
                   ),
@@ -333,7 +339,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 20,
                     offset: const Offset(0, 10),
                   ),
@@ -392,7 +398,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 boxShadow: [
                                   BoxShadow(
-                                    color: cs.primary.withOpacity(0.4),
+                                    color: cs.primary.withValues(alpha: 0.4),
                                     blurRadius: 12,
                                     offset: const Offset(0, 6),
                                   ),
@@ -421,7 +427,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               decoration: BoxDecoration(
                                 color: Colors.transparent,
                                 border: Border.all(
-                                  color: cs.primary.withOpacity(0.5),
+                                  color: cs.primary.withValues(alpha: 0.5),
                                   width: 1.5,
                                 ),
                                 borderRadius: BorderRadius.circular(16),
@@ -454,9 +460,11 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 width: double.infinity,
                 padding: const EdgeInsets.symmetric(vertical: 14),
                 decoration: BoxDecoration(
-                  color: Colors.redAccent.withOpacity(0.1),
+                  color: Colors.redAccent.withValues(alpha: 0.1),
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.redAccent.withOpacity(0.3)),
+                  border: Border.all(
+                    color: Colors.redAccent.withValues(alpha: 0.3),
+                  ),
                 ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -502,7 +510,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
       style: TextStyle(color: cs.onSurface), // لون النص المدخل
       decoration: InputDecoration(
         labelText: label,
-        labelStyle: TextStyle(color: cs.onSurface.withOpacity(0.6)),
+        labelStyle: TextStyle(color: cs.onSurface.withValues(alpha: 0.6)),
         prefixIcon: Icon(icon, color: cs.primary),
         filled: true,
         fillColor: inputColor,
@@ -516,7 +524,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: BorderSide(color: cs.outline.withOpacity(0.1)),
+          borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.1)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),

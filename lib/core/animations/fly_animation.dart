@@ -9,12 +9,13 @@ class FlyAnimation {
     required VoidCallback onComplete,
   }) {
     final overlay = Overlay.of(context);
-    
+
     final RenderBox startBox = buttonContext.findRenderObject() as RenderBox;
     final startPos = startBox.localToGlobal(Offset.zero);
     final startSize = startBox.size;
 
-    final RenderBox? endBox = cartKey.currentContext?.findRenderObject() as RenderBox?;
+    final RenderBox? endBox =
+        cartKey.currentContext?.findRenderObject() as RenderBox?;
     if (endBox == null) {
       onComplete();
       return;
@@ -25,15 +26,21 @@ class FlyAnimation {
     // Control point for Bezier curve (Parabolic path)
     // Mid-X, and Higher-Y (Start Y - 150) to create an arc
     final controlPointX = (startPos.dx + endPos.dx) / 2;
-    final controlPointY = startPos.dy - 150; 
+    final controlPointY = startPos.dy - 150;
 
     late OverlayEntry entry;
-    
+
     entry = OverlayEntry(
       builder: (context) {
         return _FlyingWidget(
-          startPos: Offset(startPos.dx + startSize.width / 2 - 20, startPos.dy + startSize.height / 2 - 20),
-          endPos: Offset(endPos.dx + endSize.width / 2 - 10, endPos.dy + endSize.height / 2 - 10),
+          startPos: Offset(
+            startPos.dx + startSize.width / 2 - 20,
+            startPos.dy + startSize.height / 2 - 20,
+          ),
+          endPos: Offset(
+            endPos.dx + endSize.width / 2 - 10,
+            endPos.dy + endSize.height / 2 - 10,
+          ),
           controlPoint: Offset(controlPointX, controlPointY),
           imageUrl: imageUrl,
           onComplete: () {
@@ -67,7 +74,8 @@ class _FlyingWidget extends StatefulWidget {
   State<_FlyingWidget> createState() => _FlyingWidgetState();
 }
 
-class _FlyingWidgetState extends State<_FlyingWidget> with SingleTickerProviderStateMixin {
+class _FlyingWidgetState extends State<_FlyingWidget>
+    with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
 
@@ -80,7 +88,10 @@ class _FlyingWidgetState extends State<_FlyingWidget> with SingleTickerProviderS
     );
 
     // Use a custom curve for nicer acceleration/deceleration
-    _animation = CurvedAnimation(parent: _controller, curve: Curves.easeInOutCubic);
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOutCubic,
+    );
 
     _controller.forward().then((_) => widget.onComplete());
   }
@@ -99,13 +110,23 @@ class _FlyingWidgetState extends State<_FlyingWidget> with SingleTickerProviderS
         final t = _animation.value;
         // Quadratic Bezier Curve formula:
         // B(t) = (1-t)^2 * P0 + 2(1-t)t * P1 + t^2 * P2
-        final x = _calculateBezier(t, widget.startPos.dx, widget.controlPoint.dx, widget.endPos.dx);
-        final y = _calculateBezier(t, widget.startPos.dy, widget.controlPoint.dy, widget.endPos.dy);
-        
+        final x = _calculateBezier(
+          t,
+          widget.startPos.dx,
+          widget.controlPoint.dx,
+          widget.endPos.dx,
+        );
+        final y = _calculateBezier(
+          t,
+          widget.startPos.dy,
+          widget.controlPoint.dy,
+          widget.endPos.dy,
+        );
+
         // Scale down from 1.0 to 0.2 as it approaches cart
         final scale = 1.0 - (t * 0.8);
         // Rotate for effect
-        final rotation = t * 2 * 3.14159; 
+        final rotation = t * 2 * 3.14159;
 
         return Positioned(
           left: x,
@@ -125,7 +146,7 @@ class _FlyingWidgetState extends State<_FlyingWidget> with SingleTickerProviderS
                   ),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
+                      color: Colors.black.withValues(alpha: 0.2),
                       blurRadius: 4,
                       spreadRadius: 1,
                     ),

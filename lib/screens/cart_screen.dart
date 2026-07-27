@@ -87,7 +87,7 @@ class _CartScreenState extends State<CartScreen> {
                         borderRadius: BorderRadius.circular(12),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withOpacity(0.05),
+                            color: Colors.black.withValues(alpha: 0.05),
                             blurRadius: 5,
                             offset: const Offset(0, 2),
                           ),
@@ -130,7 +130,9 @@ class _CartScreenState extends State<CartScreen> {
                               onPressed: () {
                                 if (!item.item.isAvailable) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('تم نفاذ الكمية')),
+                                    const SnackBar(
+                                      content: Text('تم نفاذ الكمية'),
+                                    ),
                                   );
                                   return;
                                 }
@@ -161,7 +163,7 @@ class _CartScreenState extends State<CartScreen> {
                     color: cs.surface,
                     boxShadow: [
                       BoxShadow(
-                        color: Colors.black.withOpacity(0.1),
+                        color: Colors.black.withValues(alpha: 0.1),
                         blurRadius: 20,
                         offset: const Offset(0, -5),
                       ),
@@ -231,37 +233,42 @@ class _CartScreenState extends State<CartScreen> {
                                           return Dialog(
                                             backgroundColor: Colors
                                                 .transparent, // شفاف لنرسم نحن الخلفية
-                                            insetPadding: const EdgeInsets.all(16),
+                                            insetPadding: const EdgeInsets.all(
+                                              16,
+                                            ),
                                             child: Container(
                                               decoration: BoxDecoration(
-                                                color: theme.scaffoldBackgroundColor,
-                                                borderRadius: BorderRadius.circular(
-                                                  28,
-                                                ),
+                                                color: theme
+                                                    .scaffoldBackgroundColor,
+                                                borderRadius:
+                                                    BorderRadius.circular(28),
                                                 boxShadow: [
                                                   BoxShadow(
-                                                    color: Colors.black.withOpacity(
-                                                      0.2,
-                                                    ),
+                                                    color: Colors.black
+                                                        .withValues(alpha: 0.2),
                                                     blurRadius: 20,
                                                     offset: const Offset(0, 10),
                                                   ),
                                                 ],
                                               ),
-                                              padding: const EdgeInsets.fromLTRB(
-                                                20,
-                                                24,
-                                                20,
-                                                20,
-                                              ),
+                                              padding:
+                                                  const EdgeInsets.fromLTRB(
+                                                    20,
+                                                    24,
+                                                    20,
+                                                    20,
+                                                  ),
                                               child: Column(
                                                 mainAxisSize: MainAxisSize.min,
                                                 children: [
                                                   Text(
                                                     'شلون تحب تستلم طلبك؟',
-                                                    style: theme.textTheme.titleLarge
+                                                    style: theme
+                                                        .textTheme
+                                                        .titleLarge
                                                         ?.copyWith(
-                                                          fontWeight: FontWeight.w900,
+                                                          fontWeight:
+                                                              FontWeight.w900,
                                                         ),
                                                   ),
                                                   const SizedBox(height: 24),
@@ -272,21 +279,26 @@ class _CartScreenState extends State<CartScreen> {
                                                     title: 'سفري (Takeaway)',
                                                     value: 'takeaway',
                                                     groupValue: selected,
-                                                    icon: Icons.shopping_bag_rounded,
-                                                    onChanged: (v) =>
-                                                        setState(() => selected = v),
+                                                    icon: Icons
+                                                        .shopping_bag_rounded,
+                                                    onChanged: (v) => setState(
+                                                      () => selected = v,
+                                                    ),
                                                   ),
                                                   const SizedBox(height: 12),
 
                                                   // خيار صالة
                                                   _buildPremiumCard(
                                                     context,
-                                                    title: 'داخل المطعم (Dine-in)',
+                                                    title:
+                                                        'داخل المطعم (Dine-in)',
                                                     value: 'dinein',
                                                     groupValue: selected,
-                                                    icon: Icons.table_bar_rounded,
-                                                    onChanged: (v) =>
-                                                        setState(() => selected = v),
+                                                    icon:
+                                                        Icons.table_bar_rounded,
+                                                    onChanged: (v) => setState(
+                                                      () => selected = v,
+                                                    ),
                                                   ),
                                                   const SizedBox(height: 12),
 
@@ -296,10 +308,11 @@ class _CartScreenState extends State<CartScreen> {
                                                     title: 'توصيل (Delivery)',
                                                     value: 'delivery',
                                                     groupValue: selected,
-                                                    icon:
-                                                        Icons.delivery_dining_rounded,
-                                                    onChanged: (v) =>
-                                                        setState(() => selected = v),
+                                                    icon: Icons
+                                                        .delivery_dining_rounded,
+                                                    onChanged: (v) => setState(
+                                                      () => selected = v,
+                                                    ),
                                                   ),
                                                   const SizedBox(height: 30),
 
@@ -309,7 +322,9 @@ class _CartScreenState extends State<CartScreen> {
                                                       Expanded(
                                                         child: TextButton(
                                                           onPressed: () =>
-                                                              Navigator.pop(context),
+                                                              Navigator.pop(
+                                                                context,
+                                                              ),
                                                           style: TextButton.styleFrom(
                                                             padding:
                                                                 const EdgeInsets.symmetric(
@@ -325,7 +340,8 @@ class _CartScreenState extends State<CartScreen> {
                                                           child: Text(
                                                             'إلغاء',
                                                             style: TextStyle(
-                                                              color: Colors.grey[600],
+                                                              color: Colors
+                                                                  .grey[600],
                                                               fontSize: 16,
                                                             ),
                                                           ),
@@ -338,8 +354,10 @@ class _CartScreenState extends State<CartScreen> {
                                                           style: ElevatedButton.styleFrom(
                                                             backgroundColor:
                                                                 selected != null
-                                                                ? theme.primaryColor
-                                                                : Colors.grey[300],
+                                                                ? theme
+                                                                      .primaryColor
+                                                                : Colors
+                                                                      .grey[300],
                                                             foregroundColor:
                                                                 Colors.white,
                                                             padding:
@@ -357,18 +375,21 @@ class _CartScreenState extends State<CartScreen> {
                                                                   ),
                                                             ),
                                                           ),
-                                                          onPressed: selected == null
+                                                          onPressed:
+                                                              selected == null
                                                               ? null
-                                                              : () => Navigator.pop(
-                                                                  context,
-                                                                  selected,
-                                                                ),
+                                                              : () =>
+                                                                    Navigator.pop(
+                                                                      context,
+                                                                      selected,
+                                                                    ),
                                                           child: const Text(
                                                             'تأكيد الطلب',
                                                             style: TextStyle(
                                                               fontSize: 16,
                                                               fontWeight:
-                                                                  FontWeight.bold,
+                                                                  FontWeight
+                                                                      .bold,
                                                             ),
                                                           ),
                                                         ),
@@ -421,7 +442,7 @@ class _CartScreenState extends State<CartScreen> {
                                         ? profile.address
                                         : 'بدون';
                                     String? orderId;
-                                    
+
                                     double? lat;
                                     double? long;
                                     if (type == 'delivery') {
@@ -438,19 +459,27 @@ class _CartScreenState extends State<CartScreen> {
                                             await showDialog<bool>(
                                               context: context,
                                               builder: (context) => AlertDialog(
-                                                title: const Text('تشغيل الموقع'),
+                                                title: const Text(
+                                                  'تشغيل الموقع',
+                                                ),
                                                 content: const Text(
                                                   'يرجى تشغيل الـ GPS لإتمام طلب التوصيل. هل تريد فتح الإعدادات؟',
                                                 ),
                                                 actions: [
                                                   TextButton(
                                                     onPressed: () =>
-                                                        Navigator.pop(context, false),
+                                                        Navigator.pop(
+                                                          context,
+                                                          false,
+                                                        ),
                                                     child: const Text('لا'),
                                                   ),
                                                   ElevatedButton(
                                                     onPressed: () =>
-                                                        Navigator.pop(context, true),
+                                                        Navigator.pop(
+                                                          context,
+                                                          true,
+                                                        ),
                                                     child: const Text('نعم'),
                                                   ),
                                                 ],
@@ -484,7 +513,8 @@ class _CartScreenState extends State<CartScreen> {
                                       }
                                       var permission =
                                           await Geolocator.checkPermission();
-                                      if (permission == LocationPermission.denied) {
+                                      if (permission ==
+                                          LocationPermission.denied) {
                                         permission =
                                             await Geolocator.requestPermission();
                                       }
@@ -503,12 +533,18 @@ class _CartScreenState extends State<CartScreen> {
                                                 actions: [
                                                   TextButton(
                                                     onPressed: () =>
-                                                        Navigator.pop(context, false),
+                                                        Navigator.pop(
+                                                          context,
+                                                          false,
+                                                        ),
                                                     child: const Text('لا'),
                                                   ),
                                                   ElevatedButton(
                                                     onPressed: () =>
-                                                        Navigator.pop(context, true),
+                                                        Navigator.pop(
+                                                          context,
+                                                          true,
+                                                        ),
                                                     child: const Text(
                                                       'فتح الإعدادات',
                                                     ),
@@ -529,7 +565,8 @@ class _CartScreenState extends State<CartScreen> {
                                         }
                                         return;
                                       }
-                                      if (permission == LocationPermission.denied) {
+                                      if (permission ==
+                                          LocationPermission.denied) {
                                         if (mounted) {
                                           _showToastNotification(
                                             context,
@@ -539,7 +576,7 @@ class _CartScreenState extends State<CartScreen> {
                                         }
                                         return;
                                       }
-                                      
+
                                       Position pos;
                                       if (Platform.isAndroid) {
                                         try {
@@ -559,16 +596,20 @@ class _CartScreenState extends State<CartScreen> {
                                               );
                                         } catch (_) {
                                           pos = await Geolocator.getCurrentPosition(
-                                            desiredAccuracy:
-                                                LocationAccuracy.high, // Changed from bestForNavigation
-                                            timeLimit: const Duration(seconds: 10),
+                                            desiredAccuracy: LocationAccuracy
+                                                .high, // Changed from bestForNavigation
+                                            timeLimit: const Duration(
+                                              seconds: 10,
+                                            ),
                                           );
                                         }
                                       } else {
                                         pos = await Geolocator.getCurrentPosition(
-                                          desiredAccuracy:
-                                              LocationAccuracy.high, // Changed from bestForNavigation
-                                          timeLimit: const Duration(seconds: 10),
+                                          desiredAccuracy: LocationAccuracy
+                                              .high, // Changed from bestForNavigation
+                                          timeLimit: const Duration(
+                                            seconds: 10,
+                                          ),
                                         );
                                       }
                                       lat = pos.latitude;
@@ -602,7 +643,7 @@ class _CartScreenState extends State<CartScreen> {
                                       }
                                       return;
                                     }
-                                    
+
                                     cart.clear();
                                     if (mounted) {
                                       _showToastNotification(
@@ -611,12 +652,13 @@ class _CartScreenState extends State<CartScreen> {
                                         isError: false,
                                       );
                                     }
-                                    
-                                    await Future.delayed(const Duration(seconds: 2));
+
+                                    await Future.delayed(
+                                      const Duration(seconds: 2),
+                                    );
                                     if (mounted) {
                                       Navigator.pop(context);
                                     }
-
                                   } catch (e) {
                                     if (mounted) {
                                       _showToastNotification(
@@ -626,7 +668,8 @@ class _CartScreenState extends State<CartScreen> {
                                       );
                                     }
                                   } finally {
-                                    if (mounted) setState(() => _isLoading = false);
+                                    if (mounted)
+                                      setState(() => _isLoading = false);
                                   }
                                 },
                           child: _isLoading
@@ -687,7 +730,7 @@ class _CartScreenState extends State<CartScreen> {
           boxShadow: isSelected
               ? [
                   BoxShadow(
-                    color: primaryColor.withOpacity(0.4),
+                    color: primaryColor.withValues(alpha: 0.4),
                     blurRadius: 12,
                     offset: const Offset(0, 6),
                   ),
@@ -701,7 +744,7 @@ class _CartScreenState extends State<CartScreen> {
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
                 color: isSelected
-                    ? Colors.white.withOpacity(0.2)
+                    ? Colors.white.withValues(alpha: 0.2)
                     : Colors.grey.shade100,
                 shape: BoxShape.circle,
               ),
@@ -812,7 +855,7 @@ class _ToastWidgetState extends State<ToastWidget>
                 borderRadius: BorderRadius.circular(12),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.2),
+                    color: Colors.black.withValues(alpha: 0.2),
                     blurRadius: 10,
                     offset: const Offset(0, 4),
                   ),
