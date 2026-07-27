@@ -6,6 +6,7 @@ import '../core/ui_utils.dart';
 import '../core/cart.dart';
 import '../core/animations/fly_animation.dart';
 import 'details_screen.dart';
+import '../core/repos/food_repository.dart';
 
 class CategoryContent extends StatefulWidget {
   final String category;
@@ -31,6 +32,7 @@ class CategoryContent extends StatefulWidget {
 
 class _CategoryContentState extends State<CategoryContent>
     with AutomaticKeepAliveClientMixin {
+  final repo = FoodRepository();
   late List<FoodItem> _items = widget.initialItems;
   late PageController _pageController;
   double _currentPage = 0.0;
