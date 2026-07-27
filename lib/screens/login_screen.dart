@@ -239,10 +239,24 @@ class _LoginScreenState extends State<LoginScreen>
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(
-                              Icons.person_pin_circle_rounded,
-                              size: 80,
-                              color: Colors.white,
+                            Container(
+                              width: 90,
+                              height: 90,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.white,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black26,
+                                    blurRadius: 10,
+                                    offset: Offset(0, 4),
+                                  ),
+                                ],
+                                image: DecorationImage(
+                                  image: AssetImage('assets/images/logo.png'),
+                                  fit: BoxFit.contain,
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 10),
                             const Text(

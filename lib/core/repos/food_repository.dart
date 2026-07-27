@@ -135,6 +135,54 @@ class FoodRepository {
   Future<List<FoodItem>> fetchByCategoryFresh(String category) =>
       fetchByCategory(category);
 
+  static const List<FoodItem> _defaultFallbackItems = [
+    FoodItem(
+      id: '1765207284918',
+      name: 'بيتزا دجاج وسط',
+      price: 4500.0,
+      description: 'بيتزا دجاج شهية مع الجبن والمكونات الطازجة',
+      imageUrl: 'https://boylzidmvvldouxtrpiv.supabase.co/storage/v1/object/public/food_images/pizza.png',
+      category: 'بيتزا دجاج',
+      isAvailable: true,
+    ),
+    FoodItem(
+      id: '1765197555135',
+      name: 'بيتزا لحم كبير',
+      price: 7000.0,
+      description: 'بيتزا لحم مع الخضار والجبن الفاخر',
+      imageUrl: 'https://boylzidmvvldouxtrpiv.supabase.co/storage/v1/object/public/food_images/pizza_meat.png',
+      category: 'بيتزا لحم',
+      isAvailable: true,
+    ),
+    FoodItem(
+      id: '1765197555136',
+      name: 'لحم بعجين عراقي',
+      price: 3500.0,
+      description: 'لحم بعجين على الطريقة العراقية الأصيلة',
+      imageUrl: 'https://boylzidmvvldouxtrpiv.supabase.co/storage/v1/object/public/food_images/lahm.png',
+      category: 'Lahm Bi Ajeen',
+      isAvailable: true,
+    ),
+    FoodItem(
+      id: '1765197555137',
+      name: 'مشروب غازي بارد',
+      price: 1000.0,
+      description: 'مشروب غازي منعش بارد',
+      imageUrl: 'https://boylzidmvvldouxtrpiv.supabase.co/storage/v1/object/public/food_images/drink.png',
+      category: 'Drinks',
+      isAvailable: true,
+    ),
+    FoodItem(
+      id: '1765197555138',
+      name: 'بركر لحم خاص',
+      price: 5000.0,
+      description: 'بركر لحم مع البطاطس والصلصة الخاصة',
+      imageUrl: 'https://boylzidmvvldouxtrpiv.supabase.co/storage/v1/object/public/food_images/burger.png',
+      category: 'بـركَـر',
+      isAvailable: true,
+    ),
+  ];
+
   Future<List<FoodItem>> fetchAllFresh() async {
     // PRIMARY: Direct HTTP
     final all = await _httpFetchAll();
@@ -145,13 +193,27 @@ class FoodRepository {
     if (c != null) {
       try {
         final res = await c.from(table).select().order('created_at', ascending: false);
-        return _parseItems(res as List?);
+        final items = _parseItems(res as List?);
+        if (items.isNotEmpty) return items;
       } catch (e) {
         print('⚠️ SDK fetchAll failed: $e');
       }
     }
 
-    return [];
+    // TERTIARY: Cache fallback
+    final box = _box;
+    if (box != null) {
+      final cached = box.get('__ALL__');
+      if (cached != null) {
+        try {
+          final items = _parseItems(List.from(cached));
+          if (items.isNotEmpty) return items;
+        } catch (_) {}
+      }
+    }
+
+    // GUARANTEED FALLBACK: Default items
+    return _defaultFallbackItems;
   }
 
   // ─── Real-time streams ────────────────────────────────────────────────────

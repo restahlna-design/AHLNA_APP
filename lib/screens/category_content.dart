@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
@@ -38,6 +39,7 @@ class _CategoryContentState extends State<CategoryContent>
   double _currentPage = 0.0;
   String _query = '';
   bool _loaded = false;
+  StreamSubscription<List<FoodItem>>? _streamSub;
 
   @override
   bool get wantKeepAlive => true;
@@ -45,7 +47,26 @@ class _CategoryContentState extends State<CategoryContent>
   @override
   void initState() {
     super.initState();
-    widget.stream.listen((data) {
+    _subscribeStream(widget.stream);
+    _query = widget.search.value;
+    widget.search.addListener(_onSearchChanged);
+    _pageController = PageController(viewportFraction: 1.0);
+    _currentPage = _pageController.initialPage.toDouble();
+    _pageController.addListener(_onPageChanged);
+  }
+
+  void _onSearchChanged() {
+    if (mounted) setState(() => _query = widget.search.value);
+  }
+
+  void _onPageChanged() {
+    final p = _pageController.page;
+    if (p != null && mounted) setState(() => _currentPage = p);
+  }
+
+  void _subscribeStream(Stream<List<FoodItem>> stream) {
+    _streamSub?.cancel();
+    _streamSub = stream.listen((data) {
       if (mounted) {
         if (data.isNotEmpty || _items.isEmpty) {
           setState(() {
@@ -55,16 +76,23 @@ class _CategoryContentState extends State<CategoryContent>
         }
       }
     });
-    _query = widget.search.value;
-    widget.search.addListener(() {
-      if (mounted) setState(() => _query = widget.search.value);
-    });
-    _pageController = PageController(viewportFraction: 1.0);
-    _currentPage = _pageController.initialPage.toDouble();
-    _pageController.addListener(() {
-      final p = _pageController.page;
-      if (p != null && mounted) setState(() => _currentPage = p);
-    });
+  }
+
+  @override
+  void didUpdateWidget(CategoryContent oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.stream != widget.stream || oldWidget.category != widget.category) {
+      _subscribeStream(widget.stream);
+    }
+  }
+
+  @override
+  void dispose() {
+    _streamSub?.cancel();
+    widget.search.removeListener(_onSearchChanged);
+    _pageController.removeListener(_onPageChanged);
+    _pageController.dispose();
+    super.dispose();
   }
 
   @override
