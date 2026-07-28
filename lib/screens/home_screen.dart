@@ -51,6 +51,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   final Box _offersBox = Hive.box('offers_cache');
   List<FoodItem> _allFoodItems = FoodRepository.defaultFallbackItems;
   StreamSubscription<List<FoodItem>>? _foodStream;
+  // One broadcast StreamController per active category key — avoids creating
+  // multiple WebSocket connections on iOS (which causes silent empty results).
+  final Map<String, StreamController<List<FoodItem>>> _catStreamControllers = {};
 
   String _categoryKey(CategoryModel m) {
     final en = m.nameEn.trim();
@@ -186,12 +189,38 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _subscribeFoodItems() {
     _foodStream?.cancel();
     _foodStream = repo.streamAllFoodItems().listen((items) {
-      if (mounted && items.isNotEmpty) {
+      if (!mounted) return;
+      if (items.isNotEmpty) {
         setState(() {
           _allFoodItems = items;
         });
+        // Push fresh filtered data to every active category stream controller.
+        _catStreamControllers.forEach((key, ctrl) {
+          if (!ctrl.isClosed) {
+            ctrl.add(repo.filterByCategory(items, key));
+          }
+        });
       }
     });
+  }
+
+  /// Returns (or creates) a persistent broadcast stream for a category key.
+  /// Filters _allFoodItems and adds the result immediately so CategoryContent
+  /// never starts with an empty list even before the first WebSocket update.
+  Stream<List<FoodItem>> _streamForCategory(String catKey) {
+    if (!_catStreamControllers.containsKey(catKey) ||
+        _catStreamControllers[catKey]!.isClosed) {
+      _catStreamControllers[catKey] =
+          StreamController<List<FoodItem>>.broadcast();
+    }
+    final ctrl = _catStreamControllers[catKey]!;
+    // Emit current state immediately (async so listener is attached first).
+    Future.microtask(() {
+      if (!ctrl.isClosed) {
+        ctrl.add(repo.filterByCategory(_allFoodItems, catKey));
+      }
+    });
+    return ctrl.stream;
   }
 
   Future<void> _initializeApp() async {
@@ -574,7 +603,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       key: ValueKey('cat-${current.id}'),
       category: catKey,
       initialItems: filtered,
-      stream: Stream.value(filtered),
+      stream: _streamForCategory(catKey),
       search: _search,
       offerLink: _offerLink,
       cartKey: _cartKey,
@@ -675,7 +704,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   key: ValueKey('cat-${selected.id}'),
                   category: catKey,
                   initialItems: filtered,
-                  stream: Stream.value(filtered),
+                  stream: _streamForCategory(catKey),
                   search: _search,
                   offerLink: _offerLink,
                   cartKey: _cartKey,
@@ -1012,6 +1041,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _offerLink.dispose();
     _catStream?.cancel();
     _foodStream?.cancel();
+    for (final ctrl in _catStreamControllers.values) {
+      ctrl.close();
+    }
+    _catStreamControllers.clear();
     super.dispose();
   }
 }

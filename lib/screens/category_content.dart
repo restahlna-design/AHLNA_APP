@@ -33,7 +33,9 @@ class CategoryContent extends StatefulWidget {
 
 class _CategoryContentState extends State<CategoryContent>
     with AutomaticKeepAliveClientMixin {
-  final repo = FoodRepository();
+  // NOTE: No FoodRepository here — data is fed exclusively from HomeScreen
+  // via the `stream` prop. Creating a repo here caused multiple WebSocket
+  // connections that iOS (NSURLSession) silently drops, causing empty screens.
   late List<FoodItem> _items = widget.initialItems;
   late PageController _pageController;
   double _currentPage = 0.0;
@@ -126,7 +128,10 @@ class _CategoryContentState extends State<CategoryContent>
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: () async {
-                final fresh = await repo.fetchAllFresh();
+                // One-off fresh fetch to recover from an empty screen.
+                // Creates a temporary repo only for this single HTTP call
+                // (not a persistent WebSocket, so safe on iOS).
+                final fresh = await FoodRepository().fetchAllFresh();
                 if (mounted) {
                   setState(() {
                     _items = fresh;
