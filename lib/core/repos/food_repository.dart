@@ -88,14 +88,11 @@ class FoodRepository {
         .where((q) => q.isNotEmpty)
         .toList();
     if (queries.isEmpty) return items;
-    final filtered = items.where((item) {
+    return items.where((item) {
       final cat = item.category.trim().toLowerCase();
       return queries.any((q) => cat == q || cat.contains(q) || q.contains(cat));
     }).toList();
-
-    // CRITICAL: Fallback to all items if category matching yields 0 items!
-    // This ensures food items ALWAYS display on iOS no matter category mismatch!
-    return filtered.isNotEmpty ? filtered : items;
+    // NOTE: Returns [] intentionally for empty categories — do NOT add a fallback here.
   }
 
   List<FoodItem> _filterByCategory(List<FoodItem> items, String category) =>
@@ -138,8 +135,9 @@ class FoodRepository {
       }
     }
 
-    // GUARANTEED FALLBACK: Never return an empty list on iOS!
-    return _filterByCategory(_defaultFallbackItems, category);
+    // All fetch methods failed — return empty list.
+    // An empty category should show empty, not fake fallback items.
+    return [];
   }
 
   Future<List<FoodItem>> fetchByCategoryFresh(String category) =>
@@ -244,11 +242,7 @@ class FoodRepository {
         print('⚠️ streamAllFoodItems initial fetch error: $e');
       }
 
-      // GUARANTEED FALLBACK if empty
-      if (currentItems.isEmpty && !controller.isClosed) {
-        currentItems = _defaultFallbackItems;
-        controller.add(currentItems);
-      }
+      // No fallback items — empty is empty.
 
       // STEP 2: Realtime updates via single authenticated/managed connection (_c)
       final c = _c;

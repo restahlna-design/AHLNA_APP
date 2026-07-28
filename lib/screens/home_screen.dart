@@ -49,7 +49,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   StreamSubscription<List<CategoryModel>>? _catStream;
   final GlobalKey _cartKey = GlobalKey();
   final Box _offersBox = Hive.box('offers_cache');
-  List<FoodItem> _allFoodItems = FoodRepository.defaultFallbackItems;
+  List<FoodItem> _allFoodItems = [];
   StreamSubscription<List<FoodItem>>? _foodStream;
   // One broadcast StreamController per active category key — avoids creating
   // multiple WebSocket connections on iOS (which causes silent empty results).
