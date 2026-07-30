@@ -347,17 +347,8 @@ class OrderRepository {
     }
   }
 
-  Future<List<Order>> fetchActiveOrders() async {
-    final c = _svc ?? _c;
-    if (c == null) return [];
-    final res = await c
-        .from(ordersTable)
-        .select('*, order_items(*)')
-        .neq('status', 'completed')
-        .order('created_at');
-    final list = (res as List)
-        .map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e))
-        .toList();
+  List<Order> _parseOrders(List res) {
+    final list = res.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e)).toList();
     
     // Debug: عرض البيانات الخام من قاعدة البيانات
     print('📊 تم جلب ${list.length} طلب من قاعدة البيانات');
@@ -407,8 +398,45 @@ class OrderRepository {
         items: items,
         customerLat: lat,
         customerLong: long,
+        isEdited: (o['is_edited'] == true) || (o['address']?.toString().contains('[EDITED]') == true),
       );
     }).toList();
+  }
+
+  Future<List<Order>> fetchActiveOrders() async {
+    final c = _svc ?? _c;
+    if (c == null) return [];
+    try {
+      final res = await c
+          .from(ordersTable)
+          .select('*, order_items(*)')
+          .neq('status', 'completed')
+          .order('created_at');
+      return _parseOrders(res as List);
+    } catch (e) {
+      print('Error fetching active orders: $e');
+      return [];
+    }
+  }
+
+  Future<Order?> getActiveOrderForPhone(String phone) async {
+    final c = _c ?? _svc;
+    if (c == null) return null;
+    try {
+      final res = await c
+          .from(ordersTable)
+          .select('*, order_items(*)')
+          .eq('phone', phone)
+          .neq('status', 'completed')
+          .order('created_at', ascending: false)
+          .limit(1);
+      if ((res as List).isEmpty) return null;
+      final parsed = _parseOrders(res);
+      return parsed.isNotEmpty ? parsed.first : null;
+    } catch (e) {
+      print('Error getting active order for phone: $e');
+      return null;
+    }
   }
 
   Stream<List<Order>> liveActiveOrders({
@@ -438,7 +466,10 @@ class OrderRepository {
         event: PostgresChangeEvent.update,
         schema: 'public',
         table: ordersTable,
-        callback: (_) => emit(),
+        callback: (payload) {
+          emit();
+          _showNotification(payload, isUpdate: true);
+        },
       );
       channel.onPostgresChanges(
         event: PostgresChangeEvent.delete,
@@ -473,6 +504,105 @@ class OrderRepository {
     }, isBroadcast: true);
   }
 
+  Stream<List<Order>> streamCustomerOrders(String phone, {
+    Duration poll = const Duration(seconds: 4),
+  }) {
+    final c = _c ?? _svc;
+    if (c == null) return const Stream.empty();
+    return Stream<List<Order>>.multi((controller) async {
+      Future<void> emit() async {
+        try {
+          final res = await c
+              .from(ordersTable)
+              .select('*, order_items(*)')
+              .eq('phone', phone)
+              .order('created_at');
+          final parsed = _parseOrders(res as List);
+          controller.add(parsed);
+        } catch (e) {
+          print('Error fetching customer orders: $e');
+        }
+      }
+      
+      await emit();
+      final channel = c.channel('customer_orders_live_$phone');
+      channel.onPostgresChanges(
+        event: PostgresChangeEvent.all,
+        schema: 'public',
+        table: ordersTable,
+        filter: PostgresChangeFilter(
+          type: PostgresChangeFilterType.eq,
+          column: 'phone',
+          value: phone,
+        ),
+        callback: (_) => emit(),
+      );
+      channel.subscribe();
+      final ticker = Stream.periodic(poll).listen((_) => emit());
+      
+      controller.onCancel = () async {
+        await channel.unsubscribe();
+        await ticker.cancel();
+      };
+    }, isBroadcast: true);
+  }
+
+  Future<bool> updateOrder({
+    required String orderId,
+    required String customerName,
+    required String phone,
+    required String address,
+    required String orderType,
+    required List<OrderItem> items,
+    double? customerLat,
+    double? customerLong,
+  }) async {
+    final primary = _c ?? _svc;
+    if (primary == null) return false;
+
+    try {
+      final totalPrice = items.fold(0.0, (s, e) => s + e.item.price * e.quantity);
+      final embedAddr = '[EDITED][$orderType] $address';
+      
+      final data = {
+        'customer_name': customerName,
+        'phone': phone,
+        'address': embedAddr,
+        'total_price': totalPrice,
+        'order_type': orderType,
+        'is_edited': true,
+      };
+      if (customerLat != null) data['customer_lat'] = customerLat;
+      if (customerLong != null) data['customer_long'] = customerLong;
+
+      try {
+        await primary.from(ordersTable).update(data).eq('id', orderId);
+      } catch (e) {
+        // Fallback without is_edited if column doesn't exist
+        final fallbackData = Map<String, dynamic>.from(data)..remove('is_edited');
+        await primary.from(ordersTable).update(fallbackData).eq('id', orderId);
+      }
+
+      // Delete old items and insert new ones
+      await primary.from(orderItemsTable).delete().eq('order_id', orderId);
+      
+      if (items.isNotEmpty) {
+        final itemsData = items.map((e) => {
+          'order_id': orderId,
+          'food_id': e.item.id,
+          'name': e.item.name,
+          'price': e.item.price,
+          'quantity': e.quantity,
+        }).toList();
+        await primary.from(orderItemsTable).insert(itemsData);
+      }
+      return true;
+    } catch (e) {
+      print('ERROR updating order: $e');
+      return false;
+    }
+  }
+
   Future<void> deleteOrder(String orderId) async {
     final c = _svc ?? _c;
     if (c == null) return;
@@ -487,7 +617,7 @@ class OrderRepository {
     return (res as List).map((e) => Map<String, dynamic>.from(e)).toList();
   }
 
-  void _showNotification(PostgresChangePayload payload) {
+  void _showNotification(PostgresChangePayload payload, {bool isUpdate = false}) {
     if (!Platform.isWindows) return;
 
     final newRecord = payload.newRecord;
@@ -496,10 +626,15 @@ class OrderRepository {
     final customerName = newRecord['customer_name'] ?? 'زبون';
     final price = newRecord['total_price']?.toString() ?? '0';
 
+    final title = isUpdate ? "تعديل على الطلب! 🔄" : "طلب جديد! 🔔";
+    final body = isUpdate 
+        ? "تم تعديل طلب $customerName (المبلغ: $price د.ع)"
+        : "وصل طلب بقيمة $price د.ع من $customerName";
+
     final notification = LocalNotification(
       identifier: newRecord['id']?.toString() ?? DateTime.now().millisecondsSinceEpoch.toString(),
-      title: "طلب جديد!",
-      body: "وصل طلب بقيمة $price من $customerName",
+      title: title,
+      body: body,
       actions: [
         LocalNotificationAction(
           text: 'فتح التطبيق',

@@ -8,7 +8,8 @@ import '../admin/models/order.dart';
 import '../core/profile.dart';
 
 class CartScreen extends StatefulWidget {
-  const CartScreen({super.key});
+  final Order? editingOrder;
+  const CartScreen({super.key, this.editingOrder});
 
   @override
   State<CartScreen> createState() => _CartScreenState();
@@ -445,10 +446,10 @@ class _CartScreenState extends State<CartScreen> {
 
                                     double? lat;
                                     double? long;
-                                    if (type == 'delivery') {
+                                    if (true) {
                                       _showToastNotification(
                                         context,
-                                        'جاري الحصول على موقعك للتوصيل...',
+                                        'جاري الحصول على موقعك...',
                                         isError: false,
                                       );
 
@@ -463,7 +464,7 @@ class _CartScreenState extends State<CartScreen> {
                                                   'تشغيل الموقع',
                                                 ),
                                                 content: const Text(
-                                                  'يرجى تشغيل الـ GPS لإتمام طلب التوصيل. هل تريد فتح الإعدادات؟',
+                                                  'يرجى تشغيل الـ GPS لإتمام الطلب. هل تريد فتح الإعدادات؟',
                                                 ),
                                                 actions: [
                                                   TextButton(
@@ -570,7 +571,7 @@ class _CartScreenState extends State<CartScreen> {
                                         if (mounted) {
                                           _showToastNotification(
                                             context,
-                                            'صلاحية الموقع مطلوبة لطلب التوصيل',
+                                            'صلاحية الموقع مطلوبة لإتمام الطلب',
                                             isError: true,
                                           );
                                         }
@@ -623,15 +624,34 @@ class _CartScreenState extends State<CartScreen> {
                                         );
                                       }
                                     }
-                                    orderId = await repo.createOrder(
-                                      customerName: name,
-                                      phone: phone,
-                                      address: address,
-                                      orderType: type,
-                                      items: items,
-                                      customerLat: lat,
-                                      customerLong: long,
-                                    );
+                                    Order? targetOrder = widget.editingOrder;
+                                    if (targetOrder == null && phone.isNotEmpty) {
+                                      targetOrder = await repo.getActiveOrderForPhone(phone);
+                                    }
+
+                                    if (targetOrder != null) {
+                                      final success = await repo.updateOrder(
+                                        orderId: targetOrder.id,
+                                        customerName: name,
+                                        phone: phone,
+                                        address: address,
+                                        orderType: type,
+                                        items: items,
+                                        customerLat: lat,
+                                        customerLong: long,
+                                      );
+                                      orderId = success ? targetOrder.id : null;
+                                    } else {
+                                      orderId = await repo.createOrder(
+                                        customerName: name,
+                                        phone: phone,
+                                        address: address,
+                                        orderType: type,
+                                        items: items,
+                                        customerLat: lat,
+                                        customerLong: long,
+                                      );
+                                    }
 
                                     if (orderId == null) {
                                       if (mounted) {
@@ -668,8 +688,9 @@ class _CartScreenState extends State<CartScreen> {
                                       );
                                     }
                                   } finally {
-                                    if (mounted)
+                                    if (mounted) {
                                       setState(() => _isLoading = false);
+                                    }
                                   }
                                 },
                           child: _isLoading

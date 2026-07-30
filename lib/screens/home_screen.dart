@@ -20,6 +20,9 @@ import '../core/ui_utils.dart';
 import '../core/animations/fly_animation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import '../core/storage.dart';
+import '../core/repos/order_repository.dart';
+import '../admin/models/order.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -64,6 +67,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return en.isNotEmpty ? en : ar;
   }
 
+  final orderRepo = OrderRepository();
+  StreamSubscription<List<Order>>? _ordersSub;
+  List<Order> _activeOrders = [];
+  String _lastPhone = '';
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final profile = ProfileProvider.of(context);
+    if (profile.phone.isNotEmpty && profile.phone != _lastPhone) {
+      _lastPhone = profile.phone;
+      _ordersSub?.cancel();
+      _ordersSub = orderRepo.streamCustomerOrders(profile.phone).listen((orders) {
+        if (mounted) setState(() => _activeOrders = orders);
+      });
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -72,6 +93,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _subscribeCategories();
     _loadFoodItems();
     _subscribeFoodItems();
+    _subscribeOrders();
+  }
+
+  Future<void> _subscribeOrders() async {
+    // Moved to didChangeDependencies
   }
 
   Future<void> _loadCategories() async {
@@ -311,6 +337,192 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   // Stream<List<FoodItem>> _streamByCategory(String c) => repo.liveByCategory(c); // Removed unused method
 
+
+
+  void _showActiveOrders(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (ctx) {
+        return StatefulBuilder(builder: (ctx, setSheetState) {
+          final theme = Theme.of(context);
+          return Container(
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(vertical: 20),
+            decoration: BoxDecoration(
+              color: theme.scaffoldBackgroundColor,
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 50,
+                  height: 5,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: Colors.grey.shade300,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 24.0, vertical: 8.0),
+                  child: Row(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: theme.primaryColor.withValues(alpha: 0.1),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(Icons.receipt_long, color: theme.primaryColor),
+                      ),
+                      const SizedBox(width: 16),
+                      const Text(
+                        'طلباتك الحالية', 
+                        style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                if (_activeOrders.isEmpty)
+                  Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      children: [
+                        Icon(Icons.inbox_outlined, size: 60, color: Colors.grey.shade400),
+                        const SizedBox(height: 16),
+                        Text('لا توجد طلبات قيد التنفيذ حالياً', style: TextStyle(fontSize: 16, color: Colors.grey.shade600)),
+                      ],
+                    ),
+                  )
+                else
+                  Flexible(
+                    child: ListView.builder(
+                      shrinkWrap: true,
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      itemCount: _activeOrders.length,
+                      itemBuilder: (ctx, i) {
+                        final o = _activeOrders[i];
+                        final isEdited = o.isEdited;
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(color: Colors.grey.shade200),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.03),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Material(
+                            color: Colors.transparent,
+                            child: InkWell(
+                              borderRadius: BorderRadius.circular(16),
+                              onTap: () {
+                                Navigator.pop(ctx);
+                                _editOrder(o);
+                              },
+                              child: Padding(
+                                padding: const EdgeInsets.all(16),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Row(
+                                          children: [
+                                            Text(
+                                              'طلب #${o.id.substring(0, 5)}', 
+                                              style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                                            ),
+                                            if (isEdited) ...[
+                                              const SizedBox(width: 8),
+                                              Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                                                decoration: BoxDecoration(
+                                                  color: Colors.orange.shade50,
+                                                  borderRadius: BorderRadius.circular(6),
+                                                ),
+                                                child: Text(
+                                                  'معدل',
+                                                  style: TextStyle(color: Colors.orange.shade800, fontSize: 10, fontWeight: FontWeight.bold),
+                                                ),
+                                              ),
+                                            ],
+                                          ],
+                                        ),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                          decoration: BoxDecoration(
+                                            color: theme.primaryColor,
+                                            borderRadius: BorderRadius.circular(20),
+                                          ),
+                                          child: Text(
+                                            '${o.totalPrice} د.ع',
+                                            style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 12),
+                                    Row(
+                                      children: [
+                                        Icon(Icons.shopping_bag_outlined, size: 16, color: Colors.grey.shade600),
+                                        const SizedBox(width: 6),
+                                        Text('${o.items.length} عناصر', style: TextStyle(color: Colors.grey.shade600, fontSize: 13)),
+                                        const Spacer(),
+                                        Text(
+                                          'تعديل الطلب', 
+                                          style: TextStyle(color: theme.primaryColor, fontWeight: FontWeight.bold, fontSize: 14),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Icon(Icons.edit_rounded, size: 16, color: theme.primaryColor),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
+            ),
+          );
+        });
+      },
+    );
+  }
+
+  void _editOrder(Order o) {
+    final cart = CartProvider.of(context);
+    cart.clear();
+    for (var i in o.items) {
+      cart.setQuantity(i.item, i.quantity);
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CartScreen(editingOrder: o)),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -386,58 +598,95 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
         ),
 
-        // --- أيقونة السلة ---
-        leading: Padding(
-          padding: const EdgeInsets.only(right: 8),
-          child: AnimatedBuilder(
-            animation: cart,
-            builder: (context, child) {
-              final hasItems = cart.items.isNotEmpty;
-              final itemCount = cart.totalItems;
-
-              return Stack(
-                alignment: Alignment.center,
-                children: [
-                  IconButton(
-                    key: _cartKey,
-                    icon: Icon(
-                      Icons.shopping_cart_outlined,
-                      color: hasItems
-                          ? Colors.redAccent
-                          : theme.iconTheme.color,
-                      size: 28,
-                    ),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CartScreen()),
-                      );
-                    },
+        // --- أيقونة السلة والجرس ---
+        leadingWidth: 100,
+        leading: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+          children: [
+            // Bell Icon
+            Stack(
+              alignment: Alignment.center,
+              children: [
+                IconButton(
+                  icon: Icon(
+                    Icons.notifications_none_rounded,
+                    color: _activeOrders.isNotEmpty ? Colors.orange : theme.iconTheme.color,
+                    size: 28,
                   ),
-                  if (hasItems)
-                    Positioned(
-                      right: 6,
-                      top: 6,
-                      child: Container(
-                        padding: const EdgeInsets.all(4),
-                        decoration: const BoxDecoration(
-                          color: Colors.red,
-                          shape: BoxShape.circle,
-                        ),
-                        child: Text(
-                          '$itemCount',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 10,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  onPressed: () => _showActiveOrders(context),
+                ),
+                if (_activeOrders.isNotEmpty)
+                  Positioned(
+                    right: 6,
+                    top: 6,
+                    child: Container(
+                      padding: const EdgeInsets.all(4),
+                      decoration: const BoxDecoration(
+                        color: Colors.red,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        '${_activeOrders.length}',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                ],
-              );
-            },
-          ),
+                  ),
+              ],
+            ),
+            // Cart Icon
+            AnimatedBuilder(
+              animation: cart,
+              builder: (context, child) {
+                final hasItems = cart.items.isNotEmpty;
+                final itemCount = cart.totalItems;
+
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    IconButton(
+                      key: _cartKey,
+                      icon: Icon(
+                        Icons.shopping_cart_outlined,
+                        color: hasItems ? Colors.redAccent : theme.iconTheme.color,
+                        size: 28,
+                      ),
+                      onPressed: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const CartScreen()),
+                        );
+                      },
+                    ),
+                    if (hasItems)
+                      Positioned(
+                        right: 6,
+                        top: 6,
+                        child: Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          child: Text(
+                            '$itemCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                  ],
+                );
+              },
+            ),
+          ],
         ),
 
         // --- القائمة الجانبية ---
@@ -1034,6 +1283,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   @override
   void dispose() {
+    _ordersSub?.cancel();
     _tabController?.dispose();
     _searchController.dispose();
     _search.dispose();
