@@ -172,30 +172,29 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('تأكيد الحذف'),
-        content: const Text('هل أنت متأكد من حذف هذا القسم؟\n\nتنبيه: سيتم حذف القسم فقط. لن تُحذف الوجبات الموجودة داخله وستبقى في قاعدة البيانات.'),
+        content: const Text('هل أنت متأكد من حذف هذا القسم؟\n\nتنبيه: سيتم حذف القسم وجميع الوجبات الموجودة بداخله من قاعدة البيانات بشكل نهائي.'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف القسم فقط', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف نهائي', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
 
     if (confirm == true) {
-      // أولاً: نفصل الوجبات عن القسم بدلاً من حذفها
       try {
         final svc = _repo.supabaseClient;
         if (svc != null) {
-          // تغيير حقل category لكل وجبة تتبع هذا القسم لجعلها غير مدرجة (فارغة)
+          // حذف الوجبات المرتبطة بالقسم من قاعدة البيانات نهائياً
           await svc
               .from('food_items')
-              .update({'category': ''})
+              .delete()
               .or('category.eq.$catNameEn,category.eq.$catNameAr');
         }
       } catch (e) {
-        // إذا فشل الفصل نكمل بحذف القسم فقط على أي حال
-        debugPrint('⚠️ خطأ فصل الوجبات: $e');
+        debugPrint('⚠️ خطأ حذف الوجبات: $e');
       }
-      // ثانياً: حذف القسم فقط
+      
+      // حذف القسم
       await _repo.deleteCategory(id);
       _loadCategories();
     }

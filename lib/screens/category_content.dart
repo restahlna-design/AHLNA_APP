@@ -88,7 +88,7 @@ class _CategoryContentState extends State<CategoryContent>
     if (widget.initialItems != oldWidget.initialItems || oldWidget.category != widget.category) {
       setState(() {
         _items = widget.initialItems;
-        if (_items.isNotEmpty) _loaded = true;
+        _loaded = true;
       });
     }
     if (oldWidget.stream != widget.stream || oldWidget.category != widget.category) {
