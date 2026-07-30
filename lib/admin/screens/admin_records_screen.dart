@@ -34,11 +34,11 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
   @override
   Widget build(BuildContext context) {
     // تعريف الألوان
-    const primaryGreen = Color(0xFF23AA49);
+    const primaryBronze = Color(0xFFC89B7B);
 
     if (isLoading) {
       return const Center(
-        child: CircularProgressIndicator(color: primaryGreen),
+        child: CircularProgressIndicator(color: primaryBronze),
       );
     }
 
@@ -47,15 +47,22 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.history_toggle_off,
-              size: 80,
-              color: Colors.grey.shade300,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: primaryBronze, width: 3),
+              ),
+              child: const Icon(
+                Icons.history_rounded,
+                size: 50,
+                color: primaryBronze,
+              ),
             ),
-            const SizedBox(height: 16),
-            Text(
+            const SizedBox(height: 20),
+            const Text(
               "لا توجد سجلات سابقة",
-              style: TextStyle(color: Colors.grey.shade500),
+              style: TextStyle(color: primaryBronze, fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ],
         ),
@@ -64,16 +71,16 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
 
     // ✅ استخدام LayoutBuilder لجعل التصميم متجاوباً
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F7F9),
+      backgroundColor: Colors.transparent,
       body: LayoutBuilder(
         builder: (context, constraints) {
           // إذا كانت الشاشة عريضة (أكبر من 600) اعرض جدولاً
           if (constraints.maxWidth > 600) {
-            return _buildDesktopTable(primaryGreen);
+            return _buildDesktopTable(primaryBronze);
           }
           // وإلا اعرض قائمة للموبايل
           else {
-            return _buildMobileList(primaryGreen);
+            return _buildMobileList(primaryBronze);
           }
         },
       ),
@@ -86,7 +93,7 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
       padding: const EdgeInsets.all(24),
       child: Container(
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: const Color(0xFF111827),
           borderRadius: BorderRadius.circular(16),
           boxShadow: [
             BoxShadow(
@@ -178,11 +185,11 @@ class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
         return Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: const Color(0xFF111827),
             borderRadius: BorderRadius.circular(16),
             boxShadow: [
               BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
+                color: Colors.black.withValues(alpha: 0.3),
                 blurRadius: 8,
                 offset: const Offset(0, 2),
               ),

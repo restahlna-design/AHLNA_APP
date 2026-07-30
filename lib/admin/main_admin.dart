@@ -58,43 +58,45 @@ class AhlnaAdminApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    const primaryGreen = Color(0xFF23AA49);
-    const bgGrey = Color(0xFFF6F7F9);
+    const primaryNavy = Color(0xFF161F33);
+    const secondaryNavy = Color(0xFF111827);
+    const accentBronze = Color(0xFFC89B7B);
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'لوحة الإدارة',
 
       theme: ThemeData(
+        fontFamily: 'AlMohanad',
         useMaterial3: true,
-        brightness: Brightness.light,
-        primaryColor: primaryGreen,
-        scaffoldBackgroundColor: bgGrey,
+        brightness: Brightness.dark,
+        primaryColor: accentBronze,
+        scaffoldBackgroundColor: primaryNavy,
 
-        colorScheme: const ColorScheme.light(
-          primary: primaryGreen,
-          secondary: primaryGreen,
-          surface: Colors.white,
-          onSurface: Color(0xFF1B1B1B),
+        colorScheme: const ColorScheme.dark(
+          primary: accentBronze,
+          secondary: accentBronze,
+          surface: secondaryNavy,
+          onSurface: Colors.white,
         ),
 
         appBarTheme: const AppBarTheme(
-          backgroundColor: bgGrey,
-          foregroundColor: Colors.black87,
+          backgroundColor: Colors.transparent,
+          foregroundColor: accentBronze,
           elevation: 0,
           centerTitle: false,
-          iconTheme: IconThemeData(color: Colors.black87),
+          iconTheme: IconThemeData(color: accentBronze),
         ),
 
         textTheme: const TextTheme(
           headlineSmall: TextStyle(
-            color: Colors.black87,
+            color: Colors.white,
             fontWeight: FontWeight.bold,
           ),
-          bodyMedium: TextStyle(color: Colors.black87),
+          bodyMedium: TextStyle(color: Colors.white70),
         ),
 
-        iconTheme: const IconThemeData(color: Colors.black87),
+        iconTheme: const IconThemeData(color: accentBronze),
       ),
 
       locale: const Locale('ar'),
@@ -122,7 +124,8 @@ class _AdminRootState extends State<AdminRoot> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final primaryGreen = theme.primaryColor;
+    final accentBronze = theme.primaryColor;
+    final secondaryNavy = theme.colorScheme.surface;
 
     // final isIOS = Platform.isIOS; // Removed unused variable
     final isWindows = Platform.isWindows;
@@ -161,10 +164,16 @@ class _AdminRootState extends State<AdminRoot> {
           Container(
             width: 260,
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: secondaryNavy,
+              border: Border(
+                left: BorderSide(
+                  color: accentBronze.withValues(alpha: 0.3),
+                  width: 1,
+                ),
+              ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.05),
+                  color: Colors.black.withValues(alpha: 0.3),
                   blurRadius: 20,
                   offset: const Offset(4, 0),
                 ),
@@ -180,33 +189,40 @@ class _AdminRootState extends State<AdminRoot> {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      CircleAvatar(
-                        radius: 28,
-                        backgroundColor: primaryGreen.withValues(alpha: 0.1),
-                        backgroundImage: const AssetImage('assets/logo.PNG'),
+                      Container(
+                        padding: const EdgeInsets.all(3),
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: accentBronze, width: 2),
+                        ),
+                        child: const CircleAvatar(
+                          radius: 28,
+                          backgroundColor: Colors.transparent,
+                          backgroundImage: AssetImage('assets/logo.PNG'),
+                        ),
                       ),
-                      const SizedBox(height: 15), // زدنا المسافة قليلاً
+                      const SizedBox(height: 15),
                       const Text(
                         'أهلنا داقوق',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
-                          color: Colors.black87,
+                          color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 5), // مسافة صغيرة
+                      const SizedBox(height: 5),
                       Text(
                         'لوحة التحكم',
-                        style: TextStyle(fontSize: 12, color: Colors.grey[500]),
+                        style: TextStyle(fontSize: 12, color: Colors.grey),
                       ),
                     ],
                   ),
                 ),
 
-                const Divider(
+                Divider(
                   height: 1,
                   thickness: 0.5,
-                  color: Color(0xFFEEEEEE),
+                  color: accentBronze.withValues(alpha: 0.2),
                 ),
                 const SizedBox(height: 20),
 
@@ -237,39 +253,18 @@ class _AdminRootState extends State<AdminRoot> {
                 // تذييل القائمة
                 Padding(
                   padding: const EdgeInsets.all(20.0),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.admin_panel_settings_outlined,
-                            size: 16,
-                            color: Colors.grey[400],
-                          ),
-                          const SizedBox(width: 8),
-                          Text(
-                            "Admin Panel v1.0",
-                            style: TextStyle(
-                              color: Colors.grey[400],
-                              fontSize: 12,
-                            ),
-                          ),
-                        ],
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton.icon(
+                      onPressed: _showAboutDialog,
+                      icon: Icon(Icons.info_outline_rounded, color: accentBronze, size: 20),
+                      label: Text('حول التطبيق', style: TextStyle(color: accentBronze, fontWeight: FontWeight.bold)),
+                      style: OutlinedButton.styleFrom(
+                        side: BorderSide(color: accentBronze.withValues(alpha: 0.5)),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      const SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        child: OutlinedButton.icon(
-                          onPressed: _showAboutDialog,
-                          icon: const Icon(Icons.info_outline_rounded),
-                          label: const Text('حول التطبيق'),
-                          style: OutlinedButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
                 ),
               ],
@@ -292,12 +287,21 @@ class _AdminRootState extends State<AdminRoot> {
                 actions: [
                   Padding(
                     padding: const EdgeInsets.only(left: 20),
-                    child: CircleAvatar(
-                      radius: 18,
-                      backgroundColor: Colors.white,
-                      child: Icon(
-                        Icons.notifications_none_rounded,
-                        color: Colors.grey[700],
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: accentBronze,
+                        boxShadow: [
+                          BoxShadow(
+                            color: accentBronze.withValues(alpha: 0.3),
+                            blurRadius: 8,
+                          ),
+                        ],
+                      ),
+                      padding: const EdgeInsets.all(8),
+                      child: const Icon(
+                        Icons.notifications_active_rounded,
+                        color: Color(0xFF161F33),
                         size: 20,
                       ),
                     ),
@@ -318,7 +322,7 @@ class _AdminRootState extends State<AdminRoot> {
   Widget _buildMenuItem(int index, String title, IconData icon) {
     final isSelected = _index == index;
     final theme = Theme.of(context);
-    final primaryGreen = theme.primaryColor;
+    final accentBronze = theme.primaryColor;
 
     return Material(
       color: Colors.transparent,
@@ -330,15 +334,15 @@ class _AdminRootState extends State<AdminRoot> {
         borderRadius: BorderRadius.circular(12),
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
           decoration: BoxDecoration(
             color: isSelected
-                ? primaryGreen.withValues(alpha: 0.1)
+                ? const Color(0xFF1B2439)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: isSelected
-                  ? primaryGreen.withValues(alpha: 0.2)
+                  ? accentBronze.withValues(alpha: 0.2)
                   : Colors.transparent,
             ),
           ),
@@ -347,8 +351,8 @@ class _AdminRootState extends State<AdminRoot> {
               Icon(
                 icon,
                 color: (Platform.isIOS && index != 0)
-                    ? Colors.grey[400]
-                    : (isSelected ? primaryGreen : Colors.grey[600]),
+                    ? Colors.grey[700]
+                    : (isSelected ? accentBronze : Colors.grey[400]),
                 size: 22,
               ),
               const SizedBox(width: 14),
@@ -356,19 +360,12 @@ class _AdminRootState extends State<AdminRoot> {
                 title,
                 style: TextStyle(
                   color: (Platform.isIOS && index != 0)
-                      ? Colors.grey[400]
-                      : (isSelected ? primaryGreen : Colors.grey[700]),
+                      ? Colors.grey[700]
+                      : (isSelected ? accentBronze : Colors.grey[300]),
                   fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                  fontSize: 15,
+                  fontSize: 16,
                 ),
               ),
-              const Spacer(),
-              if (isSelected)
-                Icon(
-                  Icons.arrow_forward_ios_rounded,
-                  size: 12,
-                  color: primaryGreen,
-                ),
             ],
           ),
         ),

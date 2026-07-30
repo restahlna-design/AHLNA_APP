@@ -27,8 +27,8 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
   StreamSubscription<List<Order>>? _sub;
 
   // ألوان التصميم
-  final primaryColor = const Color(0xFF23AA49);
-  final bgGrey = const Color(0xFFF6F7F9);
+  final primaryColor = const Color(0xFFC89B7B);
+  final bgGrey = Colors.transparent;
 
   String _typeLabel(String? t) {
     switch (t) {
@@ -349,15 +349,22 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.check_circle_outline,
-              size: 80,
-              color: Colors.grey.shade300,
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFC89B7B), width: 3),
+              ),
+              child: const Icon(
+                Icons.check_rounded,
+                size: 50,
+                color: Color(0xFFC89B7B),
+              ),
             ),
             const SizedBox(height: 20),
-            Text(
+            const Text(
               "لا توجد طلبات نشطة حالياً",
-              style: TextStyle(color: Colors.grey.shade500, fontSize: 18),
+              style: TextStyle(color: Color(0xFFC89B7B), fontSize: 20, fontWeight: FontWeight.bold),
             ),
           ],
         ),

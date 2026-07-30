@@ -83,11 +83,6 @@ class FoodRepository {
     if (items.isEmpty) return [];
     if (category.isEmpty || category == '__ALL__') return items;
 
-    // The admin saves `category = c.nameEn` to the database.
-    // _categoryKey builds "nameEn|nameAr" so the FIRST segment is always nameEn.
-    // We match item.category (stored as nameEn) against nameEn exactly.
-    // Substring / contains matching is intentionally removed — it caused ALL items
-    // to appear in every new/empty category due to false positives.
     final nameEn = category.split('|').first.trim().toLowerCase();
     final nameAr = category.contains('|')
         ? category.split('|').last.trim().toLowerCase()
@@ -95,7 +90,7 @@ class FoodRepository {
 
     return items.where((item) {
       final cat = item.category.trim().toLowerCase();
-      if (cat.isEmpty) return false; // Items with no category belong to none.
+      if (cat.isEmpty) return false;
       return cat == nameEn || (nameAr.isNotEmpty && cat == nameAr);
     }).toList();
   }

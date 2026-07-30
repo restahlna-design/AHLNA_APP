@@ -163,19 +163,39 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
       return;
     }
 
+    // الحصول على معلومات القسم لمعرفة اسمه
+    final cat = _categories.firstWhere((c) => c.id == id, orElse: () => _categories.first);
+    final catNameEn = cat.nameEn;
+    final catNameAr = cat.nameAr;
+
     final confirm = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('تأكيد الحذف'),
-        content: const Text('هل أنت متأكد من حذف هذا القسم؟'),
+        content: const Text('هل أنت متأكد من حذف هذا القسم؟\n\nتنبيه: سيتم حذف القسم فقط. لن تُحذف الوجبات الموجودة داخله وستبقى في قاعدة البيانات.'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('لا')),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('نعم', style: TextStyle(color: Colors.red))),
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('إلغاء')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('حذف القسم فقط', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
 
     if (confirm == true) {
+      // أولاً: نفصل الوجبات عن القسم بدلاً من حذفها
+      try {
+        final svc = _repo.supabaseClient;
+        if (svc != null) {
+          // تغيير حقل category لكل وجبة تتبع هذا القسم لجعلها غير مدرجة (فارغة)
+          await svc
+              .from('food_items')
+              .update({'category': ''})
+              .or('category.eq.$catNameEn,category.eq.$catNameAr');
+        }
+      } catch (e) {
+        // إذا فشل الفصل نكمل بحذف القسم فقط على أي حال
+        debugPrint('⚠️ خطأ فصل الوجبات: $e');
+      }
+      // ثانياً: حذف القسم فقط
       await _repo.deleteCategory(id);
       _loadCategories();
     }

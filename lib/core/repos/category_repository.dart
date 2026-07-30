@@ -12,6 +12,9 @@ class CategoryRepository {
   SupabaseClient? get _c => SupabaseManager.client;
   SupabaseClient? get _svc => SupabaseManager.serviceClient ?? _c;
 
+  /// Exposes the service client for external use (e.g. bulk updates before category deletion)
+  SupabaseClient? get supabaseClient => _svc;
+
   /// Direct HTTP fetch — bypasses supabase_flutter SDK, works on iOS AOT Release.
   Future<List<CategoryModel>> _httpFetchCategories() async {
     final client = HttpClient()

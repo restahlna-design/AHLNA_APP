@@ -49,7 +49,8 @@ class _CategoryContentState extends State<CategoryContent>
   @override
   void initState() {
     super.initState();
-    if (widget.initialItems.isNotEmpty) _loaded = true;
+    // نعتبر البيانات محملة دائماً — سواء كان القسم فارغاً أو به منتجات
+    _loaded = true;
     _subscribeStream(widget.stream);
     _query = widget.search.value;
     widget.search.addListener(_onSearchChanged);
@@ -120,27 +121,16 @@ class _CategoryContentState extends State<CategoryContent>
       if (!_loaded) {
         return const Center(child: CircularProgressIndicator());
       }
+      // القسم فارغ بالفعل — لا توجد منتجات مضافة لهذا القسم
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            const Text('جاري مزامنة القائمة مع قاعدة البيانات...', style: TextStyle(color: Colors.grey)),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: () async {
-                // One-off fresh fetch to recover from an empty screen.
-                // Creates a temporary repo only for this single HTTP call
-                // (not a persistent WebSocket, so safe on iOS).
-                final fresh = await FoodRepository().fetchAllFresh();
-                if (mounted) {
-                  setState(() {
-                    _items = fresh;
-                    _loaded = true;
-                  });
-                }
-              },
-              icon: const Icon(Icons.refresh),
-              label: const Text('تحديث البيانات الآن'),
+            Icon(Icons.inbox_outlined, size: 64, color: Colors.grey.shade400),
+            const SizedBox(height: 16),
+            Text(
+              'لا توجد منتجات في هذا القسم',
+              style: TextStyle(color: Colors.grey.shade500, fontSize: 16),
             ),
           ],
         ),
