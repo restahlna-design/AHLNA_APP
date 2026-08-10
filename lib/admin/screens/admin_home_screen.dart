@@ -62,34 +62,14 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     _stream = repo.liveActiveOrders();
     _sub = _stream!.listen((list) {
       if (mounted) {
-        setState(() {
-          if (widget.restrictActions) {
-            orders = list.where((o) {
-              final t = o.orderType?.toLowerCase() ?? '';
-              final isDelivery = t.contains('delivery') || t.contains('توصيل');
-              return o.status == OrderStatus.cooking && isDelivery;
-            }).toList();
-          } else {
-            orders = list;
-          }
-        });
+        setState(() => orders = list);
       }
     });
   }
 
   Future<void> _loadOrders() async {
     final list = await repo.fetchActiveOrders();
-    setState(() {
-      if (widget.restrictActions) {
-        orders = list.where((o) {
-          final t = o.orderType?.toLowerCase() ?? '';
-          final isDelivery = t.contains('delivery') || t.contains('توصيل');
-          return o.status == OrderStatus.cooking && isDelivery;
-        }).toList();
-      } else {
-        orders = list;
-      }
-    });
+    setState(() => orders = list);
   }
 
   void _showModernSnackBar(String message, Color color, IconData icon) {
@@ -561,24 +541,28 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 ),
                 const SizedBox(height: 8),
                 if (widget.restrictActions)
-                  Row(
-                    children: [
-                      Expanded(
-                        child: ElevatedButton(
-                          onPressed: () => _complete(index),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.green,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(vertical: 10),
-                          ),
-                          child: const Text(
-                            'إكمال التوصيل',
-                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
-                          ),
+                  // وضع السائق: فقط زر الاتصال بالزبون
+                  if (o.phone.isNotEmpty)
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final uri = Uri(scheme: 'tel', path: o.phone);
+                          // ignore: deprecated_member_use
+                          if (await canLaunchUrl(uri)) await launchUrl(uri);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.green.shade700,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 10),
+                        ),
+                        icon: const Icon(Icons.phone_rounded, size: 18),
+                        label: Text(
+                          'اتصال بالزبون (${o.phone})',
+                          style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
                         ),
                       ),
-                    ],
-                  )
+                    )
                 else if (isWindows)
                   Row(
                     children: [
