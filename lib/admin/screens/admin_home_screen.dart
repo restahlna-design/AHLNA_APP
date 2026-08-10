@@ -62,14 +62,26 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     _stream = repo.liveActiveOrders();
     _sub = _stream!.listen((list) {
       if (mounted) {
-        setState(() => orders = list);
+        setState(() {
+          if (widget.restrictActions) {
+            orders = list.where((o) => o.status == OrderStatus.cooking && o.orderType == 'delivery').toList();
+          } else {
+            orders = list;
+          }
+        });
       }
     });
   }
 
   Future<void> _loadOrders() async {
     final list = await repo.fetchActiveOrders();
-    setState(() => orders = list);
+    setState(() {
+      if (widget.restrictActions) {
+        orders = list.where((o) => o.status == OrderStatus.cooking && o.orderType == 'delivery').toList();
+      } else {
+        orders = list;
+      }
+    });
   }
 
   void _showModernSnackBar(String message, Color color, IconData icon) {
@@ -540,14 +552,31 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                   ],
                 ),
                 const SizedBox(height: 8),
-                if (isWindows)
+                if (widget.restrictActions)
+                  Row(
+                    children: [
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => _complete(index),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.green,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(vertical: 10),
+                          ),
+                          child: const Text(
+                            'إكمال التوصيل',
+                            style: TextStyle(fontSize: 13, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                      ),
+                    ],
+                  )
+                else if (isWindows)
                   Row(
                     children: [
                       Expanded(
                         child: TextButton(
-                          onPressed: widget.restrictActions
-                              ? null
-                              : () => _cancel(index),
+                          onPressed: () => _cancel(index),
                           style: TextButton.styleFrom(
                             backgroundColor: Colors.red.shade50,
                             foregroundColor: Colors.red,
@@ -562,11 +591,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                       const SizedBox(width: 8),
                       Expanded(
                         child: ElevatedButton(
-                          onPressed: widget.restrictActions
-                              ? null
-                              : (isCooking
-                                    ? () => _complete(index)
-                                    : () => _approve(index)),
+                          onPressed: isCooking ? () => _complete(index) : () => _approve(index),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isCooking
                                 ? Colors.blueAccent
