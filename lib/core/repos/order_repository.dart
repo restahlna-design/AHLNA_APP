@@ -404,19 +404,24 @@ class OrderRepository {
   }
 
   Future<List<Order>> fetchActiveOrders() async {
-    final c = _svc ?? _c;
-    if (c == null) return [];
-    try {
-      final res = await c
-          .from(ordersTable)
-          .select('*, order_items(*)')
-          .neq('status', 'completed')
-          .order('created_at');
-      return _parseOrders(res as List);
-    } catch (e) {
-      print('Error fetching active orders: $e');
-      return [];
+    // نجرب أولاً بـ service client (ويندوز/صلاحيات كاملة)
+    // ثم نجرب بـ anon client (موبايل)
+    for (final c in [_svc, _c]) {
+      if (c == null) continue;
+      try {
+        final res = await c
+            .from(ordersTable)
+            .select('*, order_items(*)')
+            .neq('status', 'completed')
+            .order('created_at');
+        final orders = _parseOrders(res as List);
+        print('✅ fetchActiveOrders: got ${orders.length} orders using ${c == _svc ? "service" : "anon"} client');
+        return orders;
+      } catch (e) {
+        print('⚠️ fetchActiveOrders error with client: $e');
+      }
     }
+    return [];
   }
 
   Future<Order?> getActiveOrderForPhone(String phone) async {
@@ -442,12 +447,13 @@ class OrderRepository {
   Stream<List<Order>> liveActiveOrders({
     Duration poll = const Duration(seconds: 4),
   }) {
-    final c = _svc ?? _c;
-    if (c == null) return const Stream.empty();
+    // استخدام الـ client الأساسي لـ Realtime channel (يعمل على الموبايل أيضاً)
+    final realtimeClient = _c ?? _svc;
+    if (realtimeClient == null) return const Stream.empty();
     return Stream<List<Order>>.multi((controller) async {
       final initial = await fetchActiveOrders();
       controller.add(initial);
-      final channel = c.channel('orders_live');
+      final channel = realtimeClient.channel('orders_live_${DateTime.now().millisecondsSinceEpoch}');
       void emit() async {
         final list = await fetchActiveOrders();
         controller.add(list);
