@@ -64,7 +64,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
       if (mounted) {
         setState(() {
           if (widget.restrictActions) {
-            orders = list.where((o) => o.status == OrderStatus.cooking && o.orderType == 'delivery').toList();
+            orders = list.where((o) {
+              final t = o.orderType?.toLowerCase() ?? '';
+              final isDelivery = t.contains('delivery') || t.contains('توصيل');
+              return o.status == OrderStatus.cooking && isDelivery;
+            }).toList();
           } else {
             orders = list;
           }
@@ -77,7 +81,11 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
     final list = await repo.fetchActiveOrders();
     setState(() {
       if (widget.restrictActions) {
-        orders = list.where((o) => o.status == OrderStatus.cooking && o.orderType == 'delivery').toList();
+        orders = list.where((o) {
+          final t = o.orderType?.toLowerCase() ?? '';
+          final isDelivery = t.contains('delivery') || t.contains('توصيل');
+          return o.status == OrderStatus.cooking && isDelivery;
+        }).toList();
       } else {
         orders = list;
       }
