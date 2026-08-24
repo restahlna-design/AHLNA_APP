@@ -596,25 +596,23 @@ class _CartScreenState extends State<CartScreen> {
                                        if (permission == LocationPermission.denied) {
                                          permission = await Geolocator.requestPermission();
                                        }
-                                                                              if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+                                       if (permission == LocationPermission.whileInUse ||
+                                           permission == LocationPermission.always) {
                                          try {
                                            final pos = await Geolocator.getCurrentPosition(
-                                             desiredAccuracy: LocationAccuracy.medium,
-                                             timeLimit: const Duration(seconds: 15),
-                                           ).timeout(const Duration(seconds: 15));
+                                             desiredAccuracy: LocationAccuracy.low,
+                                             timeLimit: const Duration(seconds: 5),
+                                           );
                                            lat = pos.latitude;
                                            long = pos.longitude;
-                                         } catch (e) {
-                                           final lastPos = await Geolocator.getLastKnownPosition();
-                                           if (lastPos != null) {
-                                             lat = lastPos.latitude;
-                                             long = lastPos.longitude;
-                                           }
+                                         } catch (_) {
+                                           final last = await Geolocator.getLastKnownPosition();
+                                           lat = last?.latitude;
+                                           long = last?.longitude;
                                          }
                                        }
                                      } catch (_) {
-
-                                       // Silent fallback - order proceeds without precise location
+                                       // GPS unavailable - proceed without location
                                      }
                                      Order? targetOrder = widget.editingOrder ?? cart.editingOrder;
 
