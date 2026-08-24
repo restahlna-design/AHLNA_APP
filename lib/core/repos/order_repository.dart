@@ -19,7 +19,7 @@ class OrderRepository {
     return m?.group(1);
   }
 
-  Future<String?> createOrder({
+    Future<String?> createOrder({
     required String customerName,
     required String phone,
     required String address,
@@ -29,6 +29,57 @@ class OrderRepository {
     double? customerLong,
     String? note,
   }) async {
+    final primary = _svc ?? _c;
+    if (primary == null) return null;
+
+    try {
+      final orderId = DateTime.now().millisecondsSinceEpoch.toString();
+      final totalPrice = items.fold(0.0, (s, e) => s + e.item.price * e.quantity);
+      final now = DateTime.now().toIso8601String();
+
+      // ALWAYS embed everything in address for older Windows admin apps backward compatibility!
+      String finalAddress = address;
+      if (!finalAddress.contains('[$orderType]')) {
+        finalAddress = '[$orderType] $finalAddress';
+      }
+      if (note != null && note.trim().isNotEmpty) {
+        finalAddress = '$finalAddress [NOTE:${note.trim()}]';
+      }
+      if (customerLat != null && customerLong != null) {
+        finalAddress = 'GPS($customerLat,$customerLong) $finalAddress';
+      }
+
+      final fallbackData = <String, dynamic>{
+        'id': orderId,
+        'customer_name': customerName,
+        'phone': phone,
+        'address': finalAddress,
+        'status': 'pending',
+        'total_price': totalPrice,
+        'created_at': now,
+      };
+
+      try {
+        final fullData = Map<String, dynamic>.from(fallbackData);
+        fullData['order_type'] = orderType;
+        if (note != null && note.trim().isNotEmpty) {
+          fullData['note'] = note.trim();
+        }
+        if (customerLat != null) fullData['customer_lat'] = customerLat;
+        if (customerLong != null) fullData['customer_long'] = customerLong;
+        
+        await primary.from(ordersTable).insert(fullData);
+      } catch (e) {
+        print('DB missing columns, falling back to basic insert: $e');
+        await primary.from(ordersTable).insert(fallbackData);
+      }
+      return orderId;
+    } catch (e) {
+      print('Fallback failed: $e');
+      return null;
+    }
+  }
+
     final primary = _svc ?? _c;
     if (primary == null) {
       print('ERROR: Supabase clients are null - check environment variables');
@@ -570,7 +621,7 @@ class OrderRepository {
     }, isBroadcast: true);
   }
 
-  Future<bool> updateOrder({
+    Future<bool> updateOrder({
     required String orderId,
     required String customerName,
     required String phone,
@@ -581,6 +632,67 @@ class OrderRepository {
     double? customerLong,
     String? note,
   }) async {
+    final primary = _svc ?? _c;
+    if (primary == null) return false;
+
+    try {
+      final totalPrice = items.fold(0.0, (s, e) => s + e.item.price * e.quantity);
+
+      String finalAddress = address;
+      if (!finalAddress.contains('[EDITED]')) {
+        finalAddress = '[EDITED] $finalAddress';
+      }
+      if (!finalAddress.contains('[$orderType]')) {
+        finalAddress = '[$orderType] $finalAddress';
+      }
+      if (note != null && note.trim().isNotEmpty) {
+        finalAddress = '$finalAddress [NOTE:${note.trim()}]';
+      }
+      if (customerLat != null && customerLong != null && !finalAddress.contains('GPS(')) {
+        finalAddress = 'GPS($customerLat,$customerLong) $finalAddress';
+      }
+
+      final fallbackData = <String, dynamic>{
+        'customer_name': customerName,
+        'phone': phone,
+        'address': finalAddress,
+        'total_price': totalPrice,
+        'is_edited': true,
+      };
+
+      try {
+        final fullData = Map<String, dynamic>.from(fallbackData);
+        fullData['order_type'] = orderType;
+        if (note != null && note.trim().isNotEmpty) {
+          fullData['note'] = note.trim();
+        }
+        if (customerLat != null) fullData['customer_lat'] = customerLat;
+        if (customerLong != null) fullData['customer_long'] = customerLong;
+
+        await primary.from(ordersTable).update(fullData).eq('id', orderId);
+      } catch (e) {
+        print('DB missing columns on update, falling back: $e');
+        await primary.from(ordersTable).update(fallbackData).eq('id', orderId);
+      }
+      
+      // Update order items...
+      await primary.from(orderItemsTable).delete().eq('order_id', orderId);
+      if (items.isNotEmpty) {
+        final itemsData = items.map((e) => {
+          'order_id': orderId,
+          'item_name': e.item.name,
+          'quantity': e.quantity,
+          'price': e.item.price,
+        }).toList();
+        await primary.from(orderItemsTable).insert(itemsData);
+      }
+      return true;
+    } catch (e) {
+      print('Update order error: $e');
+      return false;
+    }
+  }
+
     final primary = _svc ?? _c;
     if (primary == null) return false;
 

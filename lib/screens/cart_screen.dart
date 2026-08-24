@@ -596,15 +596,24 @@ class _CartScreenState extends State<CartScreen> {
                                        if (permission == LocationPermission.denied) {
                                          permission = await Geolocator.requestPermission();
                                        }
-                                       if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-                                         final pos = await Geolocator.getCurrentPosition(
-                                           desiredAccuracy: LocationAccuracy.medium,
-                                           timeLimit: const Duration(seconds: 3),
-                                         ).timeout(const Duration(seconds: 3));
-                                         lat = pos.latitude;
-                                         long = pos.longitude;
+                                                                              if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+                                         try {
+                                           final pos = await Geolocator.getCurrentPosition(
+                                             desiredAccuracy: LocationAccuracy.medium,
+                                             timeLimit: const Duration(seconds: 15),
+                                           ).timeout(const Duration(seconds: 15));
+                                           lat = pos.latitude;
+                                           long = pos.longitude;
+                                         } catch (e) {
+                                           final lastPos = await Geolocator.getLastKnownPosition();
+                                           if (lastPos != null) {
+                                             lat = lastPos.latitude;
+                                             long = lastPos.longitude;
+                                           }
+                                         }
                                        }
                                      } catch (_) {
+
                                        // Silent fallback - order proceeds without precise location
                                      }
                                      Order? targetOrder = widget.editingOrder ?? cart.editingOrder;
