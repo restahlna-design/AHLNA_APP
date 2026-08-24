@@ -19,6 +19,7 @@ class Order {
   final double? customerLat;
   final double? customerLong;
   final bool isEdited;
+  final String? note;
 
   Order({
     required this.id,
@@ -31,6 +32,7 @@ class Order {
     this.customerLat,
     this.customerLong,
     this.isEdited = false,
+    this.note,
   });
 
   double get totalPrice => items.fold(0.0, (sum, e) => sum + e.item.price * e.quantity);

@@ -1,5 +1,7 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
+import 'admin/main_admin.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'core/storage.dart';
@@ -73,6 +75,11 @@ Future<void> main() async {
   // Add 0.5s delay before removing splash screen
   await Future.delayed(const Duration(milliseconds: 500));
   FlutterNativeSplash.remove();
+
+  if (kIsWeb || defaultTargetPlatform == TargetPlatform.windows) {
+    runApp(const AhlnaAdminApp());
+    return;
+  }
 
   runApp(
     AhlnaDaquqApp(

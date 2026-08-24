@@ -20,7 +20,6 @@ import '../core/ui_utils.dart';
 import '../core/animations/fly_animation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
-import '../core/storage.dart';
 import '../core/repos/order_repository.dart';
 import '../admin/models/order.dart';
 
@@ -514,13 +513,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _editOrder(Order o) {
     final cart = CartProvider.of(context);
     cart.clear();
+    // Load old order items into cart silently
     for (var i in o.items) {
       cart.setQuantity(i.item, i.quantity);
     }
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => CartScreen(editingOrder: o)),
-    );
+    // Set global edit flag in cart controller
+    cart.setEditingOrder(o);
   }
 
   @override

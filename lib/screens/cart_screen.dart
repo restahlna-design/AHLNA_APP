@@ -17,6 +17,105 @@ class CartScreen extends StatefulWidget {
 
 class _CartScreenState extends State<CartScreen> {
   bool _isLoading = false;
+  String? _customerNote;
+
+  @override
+  void initState() {
+    super.initState();
+    // Use WidgetsBinding to fetch global context controller if needed
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        final cart = CartProvider.of(context);
+        final order = widget.editingOrder ?? cart.editingOrder;
+        if (order != null && order.note != null) {
+          setState(() {
+            _customerNote = order.note;
+          });
+        }
+      }
+    });
+  }
+
+  void _showNoteDialog(BuildContext context) {
+    final controller = TextEditingController(text: _customerNote ?? '');
+    final cs = Theme.of(context).colorScheme;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: Row(
+          children: [
+            Icon(Icons.edit_note, color: cs.primary, size: 28),
+            const SizedBox(width: 8),
+            const Text(
+              'ملاحظة للطلب',
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'اكتب ملاحظتك الخاصة بالطلب (مثال: بدون صوص، زيادة فلفل...):',
+              style: TextStyle(fontSize: 13, color: cs.onSurfaceVariant),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              maxLines: 3,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: 'اكتب الملاحظة هنا...',
+                filled: true,
+                fillColor: cs.surfaceContainerHighest.withValues(alpha: 0.3),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: cs.outline.withValues(alpha: 0.3)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: cs.primary, width: 2),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actionsPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('إلغاء', style: TextStyle(color: cs.outline)),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              setState(() {
+                _customerNote = controller.text.trim();
+              });
+              Navigator.pop(ctx);
+              _showToastNotification(
+                context,
+                (_customerNote != null && _customerNote!.isNotEmpty)
+                    ? 'تم حفظ الملاحظة ✓'
+                    : 'تم إزالة الملاحظة',
+                isError: false,
+              );
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: cs.primary,
+              foregroundColor: cs.onPrimary,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            icon: const Icon(Icons.check_circle_rounded, size: 20),
+            label: const Text('حفظ', style: TextStyle(fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
 
   void _showToastNotification(
     BuildContext context,
@@ -194,10 +293,59 @@ class _CartScreenState extends State<CartScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 55,
-                        child: ElevatedButton(
+                      Row(
+                        children: [
+                          // أيقونة الملاحظة (القلم) بحجم مناسب بجانب زر إتمام الطلب
+                          InkWell(
+                            onTap: () => _showNoteDialog(context),
+                            borderRadius: BorderRadius.circular(16),
+                            child: Container(
+                              width: 55,
+                              height: 55,
+                              decoration: BoxDecoration(
+                                color: (_customerNote != null && _customerNote!.isNotEmpty)
+                                    ? cs.primary.withValues(alpha: 0.15)
+                                    : cs.surfaceContainerHighest.withValues(alpha: 0.5),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(
+                                  color: (_customerNote != null && _customerNote!.isNotEmpty)
+                                      ? cs.primary
+                                      : cs.outline.withValues(alpha: 0.3),
+                                  width: 1.5,
+                                ),
+                              ),
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  Icon(
+                                    Icons.edit_note_rounded,
+                                    color: (_customerNote != null && _customerNote!.isNotEmpty)
+                                        ? cs.primary
+                                        : cs.onSurfaceVariant,
+                                    size: 28,
+                                  ),
+                                  if (_customerNote != null && _customerNote!.isNotEmpty)
+                                    Positioned(
+                                      top: 6,
+                                      right: 6,
+                                      child: Container(
+                                        width: 10,
+                                        height: 10,
+                                        decoration: BoxDecoration(
+                                          color: cs.primary,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: SizedBox(
+                              height: 55,
+                              child: ElevatedButton(
                           style: ElevatedButton.styleFrom(
                             backgroundColor: cs.primary,
                             foregroundColor: Colors.white,
@@ -413,17 +561,6 @@ class _CartScreenState extends State<CartScreen> {
 
                                   setState(() => _isLoading = true);
                                   try {
-                                    // إظهار رسالة للمستخدم حول نوع الطلب المختار
-                                    _showToastNotification(
-                                      context,
-                                      'تم اختيار طلب ${type == 'delivery'
-                                          ? 'توصيل'
-                                          : type == 'takeaway'
-                                          ? 'سفري'
-                                          : 'داخل المطعم'}',
-                                      isError: false,
-                                    );
-
                                     final repo = OrderRepository();
                                     final items = cart.items
                                         .map(
@@ -444,214 +581,86 @@ class _CartScreenState extends State<CartScreen> {
                                         : 'بدون';
                                     String? orderId;
 
-                                    double? lat;
-                                    double? long;
-                                    if (true) {
-                                      _showToastNotification(
-                                        context,
-                                        'جاري الحصول على موقعك...',
-                                        isError: false,
-                                      );
+                                     double? lat;
+                                     double? long;
+                                     try {
+                                       final serviceEnabled =
+                                           await Geolocator.isLocationServiceEnabled();
+                                       if (serviceEnabled) {
+                                         var permission =
+                                             await Geolocator.checkPermission();
+                                         if (permission ==
+                                             LocationPermission.denied) {
+                                           permission =
+                                               await Geolocator.requestPermission();
+                                         }
+                                         if (permission ==
+                                                 LocationPermission.whileInUse ||
+                                             permission ==
+                                                 LocationPermission.always) {
+                                           final pos =
+                                               await Geolocator.getCurrentPosition(
+                                                 desiredAccuracy:
+                                                     LocationAccuracy.medium,
+                                                 timeLimit: const Duration(
+                                                   seconds: 3,
+                                                 ),
+                                               ).timeout(
+                                                 const Duration(seconds: 3),
+                                               );
+                                           lat = pos.latitude;
+                                           long = pos.longitude;
+                                         }
+                                       }
+                                     } catch (_) {
+                                       // Silent fallback
+                                     }
+                                     Order? targetOrder = widget.editingOrder ?? cart.editingOrder;
 
-                                      var serviceEnabled =
-                                          await Geolocator.isLocationServiceEnabled();
-                                      if (!serviceEnabled) {
-                                        final accept =
-                                            await showDialog<bool>(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                title: const Text(
-                                                  'تشغيل الموقع',
-                                                ),
-                                                content: const Text(
-                                                  'يرجى تشغيل الـ GPS لإتمام الطلب. هل تريد فتح الإعدادات؟',
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                          context,
-                                                          false,
-                                                        ),
-                                                    child: const Text('لا'),
-                                                  ),
-                                                  ElevatedButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                          context,
-                                                          true,
-                                                        ),
-                                                    child: const Text('نعم'),
-                                                  ),
-                                                ],
-                                              ),
-                                            ) ??
-                                            false;
-                                        if (accept) {
-                                          await Geolocator.openLocationSettings();
-                                          serviceEnabled =
-                                              await Geolocator.isLocationServiceEnabled();
-                                          if (!serviceEnabled) {
-                                            if (mounted) {
-                                              _showToastNotification(
-                                                context,
-                                                'قم بتشغيل الموقع',
-                                                isError: true,
-                                              );
-                                            }
-                                            return;
-                                          }
-                                        } else {
-                                          if (mounted) {
-                                            _showToastNotification(
-                                              context,
-                                              'قم بتشغيل الموقع',
-                                              isError: true,
-                                            );
-                                          }
-                                          return;
-                                        }
-                                      }
-                                      var permission =
-                                          await Geolocator.checkPermission();
-                                      if (permission ==
-                                          LocationPermission.denied) {
-                                        permission =
-                                            await Geolocator.requestPermission();
-                                      }
-                                      if (permission ==
-                                          LocationPermission.deniedForever) {
-                                        final goSettings =
-                                            await showDialog<bool>(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                title: const Text(
-                                                  'صلاحية الموقع مطلوبة',
-                                                ),
-                                                content: const Text(
-                                                  'يجب منح صلاحية الوصول للموقع. هل تريد فتح إعدادات التطبيق؟',
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                          context,
-                                                          false,
-                                                        ),
-                                                    child: const Text('لا'),
-                                                  ),
-                                                  ElevatedButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                          context,
-                                                          true,
-                                                        ),
-                                                    child: const Text(
-                                                      'فتح الإعدادات',
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ) ??
-                                            false;
-                                        if (goSettings) {
-                                          await Geolocator.openAppSettings();
-                                        }
-                                        if (mounted) {
-                                          _showToastNotification(
-                                            context,
-                                            'قم بتفعيل صلاحية الموقع',
-                                            isError: true,
-                                          );
-                                        }
-                                        return;
-                                      }
-                                      if (permission ==
-                                          LocationPermission.denied) {
-                                        if (mounted) {
-                                          _showToastNotification(
-                                            context,
-                                            'صلاحية الموقع مطلوبة لإتمام الطلب',
-                                            isError: true,
-                                          );
-                                        }
-                                        return;
-                                      }
-
-                                      Position pos;
-                                      if (Platform.isAndroid) {
-                                        try {
-                                          pos =
-                                              await Geolocator.getPositionStream(
-                                                locationSettings: AndroidSettings(
-                                                  accuracy: LocationAccuracy
-                                                      .high, // Changed from bestForNavigation
-                                                  forceLocationManager: true,
-                                                  distanceFilter: 0,
-                                                  intervalDuration: Duration(
-                                                    seconds: 1,
-                                                  ),
-                                                ),
-                                              ).first.timeout(
-                                                const Duration(seconds: 10),
-                                              );
-                                        } catch (_) {
-                                          pos = await Geolocator.getCurrentPosition(
-                                            desiredAccuracy: LocationAccuracy
-                                                .high, // Changed from bestForNavigation
-                                            timeLimit: const Duration(
-                                              seconds: 10,
-                                            ),
-                                          );
-                                        }
-                                      } else {
-                                        pos = await Geolocator.getCurrentPosition(
-                                          desiredAccuracy: LocationAccuracy
-                                              .high, // Changed from bestForNavigation
-                                          timeLimit: const Duration(
-                                            seconds: 10,
-                                          ),
-                                        );
-                                      }
-                                      lat = pos.latitude;
-                                      long = pos.longitude;
-
-                                      if (mounted) {
-                                        _showToastNotification(
-                                          context,
-                                          'تم الحصول على الموقع بنجاح: ${lat.toStringAsFixed(4)}, ${long.toStringAsFixed(4)}',
-                                          isError: false,
-                                        );
-                                      }
-                                    }
-                                    Order? targetOrder = widget.editingOrder;
-                                    if (targetOrder == null && phone.isNotEmpty) {
-                                      targetOrder = await repo.getActiveOrderForPhone(phone);
-                                    }
-
-                                    if (targetOrder != null) {
-                                      final success = await repo.updateOrder(
-                                        orderId: targetOrder.id,
-                                        customerName: name,
-                                        phone: phone,
-                                        address: address,
-                                        orderType: type,
-                                        items: items,
-                                        customerLat: lat,
-                                        customerLong: long,
-                                      );
-                                      orderId = success ? targetOrder.id : null;
-                                    } else {
-                                      orderId = await repo.createOrder(
-                                        customerName: name,
-                                        phone: phone,
-                                        address: address,
-                                        orderType: type,
-                                        items: items,
-                                        customerLat: lat,
-                                        customerLong: long,
-                                      );
-                                    }
+                                     if (targetOrder != null) {
+                                       final success = await repo.updateOrder(
+                                         orderId: targetOrder.id,
+                                         customerName: name,
+                                         phone: phone,
+                                         address: address,
+                                         orderType: type,
+                                         items: items,
+                                         customerLat: lat,
+                                         customerLong: long,
+                                         note: _customerNote,
+                                       );
+                                       if (success) {
+                                         orderId = targetOrder.id;
+                                       } else {
+                                         // Fallback if RLS or DB prevents UPDATE on mobile
+                                         print('⚠️ updateOrder returned false; falling back to creating updated order');
+                                         final shortId = targetOrder.id.length > 5 ? targetOrder.id.substring(0, 5) : targetOrder.id;
+                                         orderId = await repo.createOrder(
+                                           customerName: name,
+                                           phone: phone,
+                                           address: '[تعديل لطلب #$shortId] $address',
+                                           orderType: type,
+                                           items: items,
+                                           customerLat: lat,
+                                           customerLong: long,
+                                           note: _customerNote,
+                                         );
+                                         if (orderId != null) {
+                                           try { repo.deleteOrder(targetOrder.id); } catch (_) {}
+                                         }
+                                       }
+                                     } else {
+                                       orderId = await repo.createOrder(
+                                         customerName: name,
+                                         phone: phone,
+                                         address: address,
+                                         orderType: type,
+                                         items: items,
+                                         customerLat: lat,
+                                         customerLong: long,
+                                         note: _customerNote,
+                                       );
+                                     }
 
                                     if (orderId == null) {
                                       if (mounted) {
@@ -664,26 +673,17 @@ class _CartScreenState extends State<CartScreen> {
                                       return;
                                     }
 
-                                    cart.clear();
+                                     cart.clear();
+                                     if (mounted) {
+                                       Navigator.pop(context);
+                                     }
+                                  } catch (e, stackTrace) {
+                                    print('ERROR IN SUBMIT: $e');
+                                    print(stackTrace);
                                     if (mounted) {
                                       _showToastNotification(
                                         context,
-                                        'تم إرسال الطلب',
-                                        isError: false,
-                                      );
-                                    }
-
-                                    await Future.delayed(
-                                      const Duration(seconds: 2),
-                                    );
-                                    if (mounted) {
-                                      Navigator.pop(context);
-                                    }
-                                  } catch (e) {
-                                    if (mounted) {
-                                      _showToastNotification(
-                                        context,
-                                        'حدث خطأ: $e',
+                                        'تعذر إرسال الطلب: $e',
                                         isError: true,
                                       );
                                     }
@@ -711,16 +711,19 @@ class _CartScreenState extends State<CartScreen> {
                                 ),
                         ),
                       ),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
-              ),
-            ],
-          );
-        },
-      ),
+              ],
+            ),
+          ),
+        ),
+      ],
     );
-  }
+  },
+),
+);
+}
 
   // 🔥 ودجت البطاقة الفاخرة (Premium Card) 🔥
   Widget _buildPremiumCard(

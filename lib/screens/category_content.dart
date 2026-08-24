@@ -151,7 +151,7 @@ class _CategoryContentState extends State<CategoryContent>
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
+                  color: Colors.black.withValues(alpha: 0.05),
                   blurRadius: 10,
                   offset: const Offset(0, 4),
                 ),
@@ -270,7 +270,7 @@ class _CategoryContentState extends State<CategoryContent>
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withOpacity(0.15),
+                                          color: Colors.black.withValues(alpha: 0.15),
                                           blurRadius: 20,
                                           offset: const Offset(0, 10),
                                         ),
@@ -342,7 +342,7 @@ class _CategoryContentState extends State<CategoryContent>
               ),
               boxShadow: [
                 BoxShadow(
-                  color: Colors.black.withOpacity(0.1),
+                  color: Colors.black.withValues(alpha: 0.1),
                   blurRadius: 20,
                   offset: const Offset(0, -5),
                 ),
@@ -425,7 +425,7 @@ class _CategoryContentState extends State<CategoryContent>
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withValues(alpha: 0.05),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -465,7 +465,7 @@ class _CategoryContentState extends State<CategoryContent>
                     _buildPlaceholderWidget(theme),
                     Center(
                       child: CircularProgressIndicator(
-                        color: theme.primaryColor.withOpacity(0.5),
+                        color: theme.primaryColor.withValues(alpha: 0.5),
                       ),
                     ),
                   ],
@@ -481,10 +481,10 @@ class _CategoryContentState extends State<CategoryContent>
   Widget _buildPlaceholderWidget(ThemeData theme) {
     return Container(
       decoration: BoxDecoration(
-        color: theme.primaryColor.withOpacity(0.1),
+        color: theme.primaryColor.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: theme.primaryColor.withOpacity(0.3),
+          color: theme.primaryColor.withValues(alpha: 0.3),
           width: 1,
         ),
       ),
@@ -509,7 +509,7 @@ class _CategoryContentState extends State<CategoryContent>
             Text(
               "قريباً...",
               style: TextStyle(
-                color: theme.primaryColor.withOpacity(0.7),
+                color: theme.primaryColor.withValues(alpha: 0.7),
                 fontSize: 12,
               ),
             ),

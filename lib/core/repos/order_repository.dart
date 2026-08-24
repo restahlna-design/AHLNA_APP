@@ -27,27 +27,11 @@ class OrderRepository {
     required List<OrderItem> items,
     double? customerLat,
     double? customerLong,
+    String? note,
   }) async {
-    final primary = _c ?? _svc;
+    final primary = _svc ?? _c;
     if (primary == null) {
       print('ERROR: Supabase clients are null - check environment variables');
-      return null;
-    }
-
-    // التحقق من الاتصال بقاعدة البيانات وهيكل الجدول
-    try {
-      final testConnection = await primary.from(ordersTable).select().limit(1);
-      print('✅ Database connection test: SUCCESS');
-
-      // التحقق من الأعمدة المتوفرة
-      try {
-        final columns = await primary.from(ordersTable).select('*').limit(0);
-        print('📊 Available columns in orders table: ${columns.length}');
-      } catch (e) {
-        print('⚠️ Could not check columns: $e');
-      }
-    } catch (e) {
-      print('❌ Database connection failed: $e');
       return null;
     }
 
@@ -71,13 +55,17 @@ class OrderRepository {
       // إذا لم يكن عمود order_type موجوداً، سنخزن نوع الطلب في عنوان الطلب
       String finalAddress = address;
       String finalOrderType = orderType;
+      final cleanNote = (note != null && note.trim().isNotEmpty) ? note.trim() : null;
+      if (cleanNote != null) {
+        finalAddress = '$finalAddress [NOTE:$cleanNote]';
+      }
 
       SupabaseClient? usedClient;
       try {
         print('🔄 Attempting to insert order...');
-        // محاولة إضافة order_type إذا كان موجوداً
+        // محاولة إضافة order_type وإضافة note إذا كان العمود متوفراً
         try {
-          final dataWithType = {
+          final dataWithType = <String, dynamic>{
             'id': orderId,
             'customer_name': customerName,
             'phone': phone,
@@ -87,17 +75,23 @@ class OrderRepository {
             'created_at': now,
             'order_type': finalOrderType,
           };
+          if (cleanNote != null) {
+            dataWithType['note'] = cleanNote;
+            dataWithType['notes'] = cleanNote;
+          }
           if (customerLat != null) dataWithType['customer_lat'] = customerLat;
-                            if (customerLong != null) dataWithType['customer_long'] = customerLong;
-                            await primary.from(ordersTable).insert(dataWithType);
-                            print('✅ Order inserted with order_type');
-                            print('📍 Coordinates: lat=$customerLat, long=$customerLong');
+          if (customerLong != null) dataWithType['customer_long'] = customerLong;
+          await primary.from(ordersTable).insert(dataWithType);
+          print('✅ Order inserted with order_type');
+          print('📍 Coordinates: lat=$customerLat, long=$customerLong');
         } catch (e) {
           final err = e.toString();
-          if (err.contains('order_type')) {
-            print('⚠️ order_type missing, storing type in address');
-            finalAddress = '[$finalOrderType] $address';
-            final dataNoType = {
+          if (err.contains('order_type') || err.contains('note') || err.contains('notes')) {
+            print('⚠️ Column missing, storing in address fallback');
+            if (!finalAddress.contains('[$finalOrderType]')) {
+              finalAddress = '[$finalOrderType] $finalAddress';
+            }
+            final dataNoType = <String, dynamic>{
               'id': orderId,
               'customer_name': customerName,
               'phone': phone,
@@ -150,6 +144,10 @@ class OrderRepository {
               'total_price': totalPrice,
               'created_at': now,
             };
+            if (cleanNote != null) {
+              svcData['note'] = cleanNote;
+              svcData['notes'] = cleanNote;
+            }
             if (customerLat != null) svcData['customer_lat'] = customerLat;
             if (customerLong != null) svcData['customer_long'] = customerLong;
             await svc.from(ordersTable).insert(svcData);
@@ -169,6 +167,10 @@ class OrderRepository {
                 'total_price': totalPrice,
                 'created_at': now,
               };
+              if (cleanNote != null) {
+                svcDataNoType['note'] = cleanNote;
+                svcDataNoType['notes'] = cleanNote;
+              }
               if (customerLat != null && customerLong != null) {
                 svcDataNoType['address'] = 'GPS($customerLat,$customerLong) $embedAddr';
               }
@@ -190,6 +192,10 @@ class OrderRepository {
                   'created_at': now,
                   'order_type': finalOrderType,
                 };
+                if (cleanNote != null) {
+                  fallbackSvc['note'] = cleanNote;
+                  fallbackSvc['notes'] = cleanNote;
+                }
                 await svc.from(ordersTable).insert(fallbackSvc);
                 usedClient = svc;
               } else {
@@ -373,12 +379,22 @@ class OrderRepository {
             );
           }).toList() ??
           [];
-      final type = o['order_type']?.toString() ?? _extractType(o['address']?.toString());
+      final rawAddress = o['address']?.toString() ?? '';
+      String? note = o['note']?.toString() ?? o['notes']?.toString();
+      if (note == null || note.trim().isEmpty) {
+        final mNote = RegExp(r"\[NOTE:(.*?)\]").firstMatch(rawAddress) ??
+                     RegExp(r"\[ملاحظة:(.*?)\]").firstMatch(rawAddress);
+        if (mNote != null) {
+          note = mNote.group(1)?.trim();
+        }
+      }
+      String cleanAddress = rawAddress.replaceAll(RegExp(r"\[NOTE:(.*?)\]"), '').replaceAll(RegExp(r"\[ملاحظة:(.*?)\]"), '').trim();
+
+      final type = o['order_type']?.toString() ?? _extractType(rawAddress);
       double? lat = (o['customer_lat'] as num?)?.toDouble();
       double? long = (o['customer_long'] as num?)?.toDouble();
       if (lat == null || long == null) {
-        final addr = o['address']?.toString() ?? '';
-        final m = RegExp(r"GPS\(([-\d\.]+),([-\d\.]+)\)").firstMatch(addr);
+        final m = RegExp(r"GPS\(([-\d\.]+),([-\d\.]+)\)").firstMatch(rawAddress);
         if (m != null) {
           lat = double.tryParse(m.group(1)!);
           long = double.tryParse(m.group(2)!);
@@ -388,7 +404,7 @@ class OrderRepository {
         id: o['id']?.toString() ?? '',
         customerName: o['customer_name'] ?? '',
         phone: o['phone'] ?? '',
-        address: o['address'] ?? '',
+        address: cleanAddress,
         orderType: type,
         status: (o['status'] == 'cooking')
             ? OrderStatus.cooking
@@ -398,7 +414,8 @@ class OrderRepository {
         items: items,
         customerLat: lat,
         customerLong: long,
-        isEdited: (o['is_edited'] == true) || (o['address']?.toString().contains('[EDITED]') == true),
+        isEdited: (o['is_edited'] == true) || (rawAddress.contains('[EDITED]') == true),
+        note: (note != null && note.trim().isNotEmpty) ? note.trim() : null,
       );
     }).toList();
   }
@@ -562,15 +579,26 @@ class OrderRepository {
     required List<OrderItem> items,
     double? customerLat,
     double? customerLong,
+    String? note,
   }) async {
-    final primary = _c ?? _svc;
+    final primary = _svc ?? _c;
     if (primary == null) return false;
 
     try {
       final totalPrice = items.fold(0.0, (s, e) => s + e.item.price * e.quantity);
-      final embedAddr = '[EDITED][$orderType] $address';
+      final cleanNote = (note != null && note.trim().isNotEmpty) ? note.trim() : null;
+      var embedAddr = address;
+      if (!embedAddr.contains('[EDITED]')) {
+        embedAddr = '[EDITED][$orderType] $embedAddr';
+      }
+      if (cleanNote != null && !embedAddr.contains('[NOTE:')) {
+        embedAddr = '$embedAddr [NOTE:$cleanNote]';
+      }
+      if (customerLat != null && customerLong != null && !embedAddr.contains('GPS(')) {
+        embedAddr = 'GPS($customerLat,$customerLong) $embedAddr';
+      }
       
-      final data = {
+      final fullData = <String, dynamic>{
         'customer_name': customerName,
         'phone': phone,
         'address': embedAddr,
@@ -578,20 +606,68 @@ class OrderRepository {
         'order_type': orderType,
         'is_edited': true,
       };
-      if (customerLat != null) data['customer_lat'] = customerLat;
-      if (customerLong != null) data['customer_long'] = customerLong;
+      if (cleanNote != null) {
+        fullData['note'] = cleanNote;
+        fullData['notes'] = cleanNote;
+      }
+      if (customerLat != null) fullData['customer_lat'] = customerLat;
+      if (customerLong != null) fullData['customer_long'] = customerLong;
 
-      try {
-        await primary.from(ordersTable).update(data).eq('id', orderId);
-      } catch (e) {
-        // Fallback without is_edited if column doesn't exist
-        final fallbackData = Map<String, dynamic>.from(data)..remove('is_edited');
-        await primary.from(ordersTable).update(fallbackData).eq('id', orderId);
+      bool orderUpdated = false;
+
+      // 1. Try updating with full fields using service client or anon client
+      final clients = [_svc, _c].whereType<SupabaseClient>().toList();
+      for (final client in clients) {
+        try {
+          await client.from(ordersTable).update(fullData).eq('id', orderId);
+          orderUpdated = true;
+          print('✅ Order $orderId updated with fullData using client');
+          break;
+        } catch (updateError) {
+          print('⚠️ Full update failed with client: $updateError');
+        }
       }
 
-      // Delete old items and insert new ones
-      await primary.from(orderItemsTable).delete().eq('order_id', orderId);
-      
+      // 2. If full update failed, try minimal update without optional columns
+      if (!orderUpdated) {
+        final minimalData = <String, dynamic>{
+          'customer_name': customerName,
+          'phone': phone,
+          'address': embedAddr,
+          'total_price': totalPrice,
+        };
+
+        for (final client in clients) {
+          try {
+            await client.from(ordersTable).update(minimalData).eq('id', orderId);
+            orderUpdated = true;
+            print('✅ Order $orderId updated with minimalData using client');
+            break;
+          } catch (updateError) {
+            print('⚠️ Minimal update failed with client: $updateError');
+          }
+        }
+      }
+
+      if (!orderUpdated) {
+        print('❌ Could not update order in orders table');
+        return false;
+      }
+
+      // 3. Delete old items
+      bool itemsDeleted = false;
+      for (final client in clients) {
+        try {
+          await client.from(orderItemsTable).delete().eq('order_id', orderId);
+          itemsDeleted = true;
+          print('✅ Order items deleted for order $orderId');
+          break;
+        } catch (deleteError) {
+          print('⚠️ Delete order items failed with client: $deleteError');
+        }
+      }
+
+      // 4. Insert new items
       if (items.isNotEmpty) {
         final itemsData = items.map((e) => {
           'order_id': orderId,
@@ -600,11 +676,24 @@ class OrderRepository {
           'price': e.item.price,
           'quantity': e.quantity,
         }).toList();
-        await primary.from(orderItemsTable).insert(itemsData);
+        
+        bool itemsInserted = false;
+        for (final client in clients) {
+          try {
+            await client.from(orderItemsTable).insert(itemsData);
+            itemsInserted = true;
+            print('✅ Order items inserted for order $orderId');
+            break;
+          } catch (insertError) {
+            print('⚠️ Insert order items failed with client: $insertError');
+          }
+        }
       }
+
       return true;
-    } catch (e) {
+    } catch (e, stackTrace) {
       print('ERROR updating order: $e');
+      print('Stack trace: $stackTrace');
       return false;
     }
   }

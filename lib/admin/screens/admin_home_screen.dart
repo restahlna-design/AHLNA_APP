@@ -762,6 +762,65 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             ),
             child: Column(
               children: [
+                Container(
+                  width: double.infinity,
+                  margin: const EdgeInsets.only(bottom: 12),
+                  padding: const EdgeInsets.all(10),
+                  decoration: BoxDecoration(
+                    color: (o.note != null && o.note!.trim().isNotEmpty)
+                        ? primaryColor.withValues(alpha: 0.08)
+                        : Colors.grey.withValues(alpha: 0.05),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: (o.note != null && o.note!.trim().isNotEmpty)
+                          ? primaryColor.withValues(alpha: 0.3)
+                          : Colors.grey.withValues(alpha: 0.2),
+                    ),
+                  ),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(
+                        Icons.edit_note_rounded,
+                        color: (o.note != null && o.note!.trim().isNotEmpty)
+                            ? primaryColor
+                            : Colors.grey,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'ملاحظة الزبون:',
+                              style: TextStyle(
+                                color: (o.note != null && o.note!.trim().isNotEmpty)
+                                    ? primaryColor
+                                    : Colors.grey[600],
+                                fontWeight: FontWeight.bold,
+                                fontSize: 12,
+                              ),
+                            ),
+                            const SizedBox(height: 2),
+                            Text(
+                              (o.note != null && o.note!.trim().isNotEmpty)
+                                  ? o.note!
+                                  : 'لا توجد ملاحظات من الزبون',
+                              style: TextStyle(
+                                fontSize: 13,
+                                color: (o.note != null && o.note!.trim().isNotEmpty)
+                                    ? Colors.black87
+                                    : Colors.grey[500],
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
                 // السعر
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -1018,6 +1077,47 @@ class _OrderDetailsScreen extends StatelessWidget {
                           Expanded(child: Text(item.item.name)),
                         ],
                       ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: cs.surface,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(Icons.edit_note_rounded, color: primaryColor, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'ملاحظة الزبون',
+                        style: TextStyle(
+                          color: primaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    (order.note != null && order.note!.trim().isNotEmpty)
+                        ? order.note!
+                        : 'لا توجد ملاحظات من الزبون',
+                    style: TextStyle(
+                      color: (order.note != null && order.note!.trim().isNotEmpty)
+                          ? cs.onSurface
+                          : Colors.grey[500],
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ],

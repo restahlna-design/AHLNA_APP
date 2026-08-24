@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/food_item.dart';
 
+import '../admin/models/order.dart';
+
 class CartItem {
   final FoodItem item;
   int quantity;
@@ -9,6 +11,14 @@ class CartItem {
 
 class CartController extends ChangeNotifier {
   final Map<String, CartItem> _items = {};
+  Order? _editingOrder;
+
+  Order? get editingOrder => _editingOrder;
+
+  void setEditingOrder(Order? order) {
+    _editingOrder = order;
+    notifyListeners();
+  }
 
   List<CartItem> get items => _items.values.toList(growable: false);
   int get totalItems => _items.values.fold(0, (sum, e) => sum + e.quantity);
@@ -58,6 +68,7 @@ class CartController extends ChangeNotifier {
 
   void clear() {
     _items.clear();
+    _editingOrder = null;
     notifyListeners();
   }
 }
