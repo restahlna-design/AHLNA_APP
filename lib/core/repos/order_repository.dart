@@ -41,7 +41,7 @@ class OrderRepository {
       final now = DateTime.now().toIso8601String();
       final cleanNote = (note != null && note.trim().isNotEmpty) ? note.trim() : null;
 
-      // Build address string with embedded GPS and type for full backward compatibility
+      // Build address string with embedded GPS and type
       String finalAddress = address.isNotEmpty ? address : 'بدون';
       if (customerLat != null && customerLong != null) {
         finalAddress = 'GPS($customerLat,$customerLong) $finalAddress';
@@ -65,7 +65,6 @@ class OrderRepository {
       if (customerLat != null) fullOrderData['customer_lat'] = customerLat;
       if (customerLong != null) fullOrderData['customer_long'] = customerLong;
 
-      // 1. Try full insert
       bool orderInserted = false;
       try {
         await primary.from(ordersTable).insert(fullOrderData);
@@ -88,7 +87,6 @@ class OrderRepository {
           print('✅ Order inserted with minimal columns fallback');
         } catch (e2) {
           print('❌ Minimal insert failed: $e2');
-          // If anon failed, try service client if available
           final svc = _svc;
           if (svc != null && svc != primary) {
             try {
@@ -107,35 +105,46 @@ class OrderRepository {
         return null;
       }
 
-      // 2. Insert order items safely
+      // Insert order items with safe food_id checking
       if (items.isNotEmpty) {
-        final itemsData = items.map((e) => {
-          'order_id': orderId,
-          'food_id': e.item.id,
-          'name': e.item.name,
-          'price': e.item.price,
-          'quantity': e.quantity,
+        final itemsData = items.map((e) {
+          final isNumeric = RegExp(r'^\d+$').hasMatch(e.item.id);
+          return {
+            'order_id': orderId,
+            'food_id': isNumeric ? e.item.id : null,
+            'name': e.item.name,
+            'price': e.item.price,
+            'quantity': e.quantity,
+          };
         }).toList();
         
         try {
           await primary.from(orderItemsTable).insert(itemsData);
-          print('✅ Order items inserted');
+          print('✅ Order items inserted successfully');
         } catch (itemErr) {
-          print('⚠️ order_items insert failed: $itemErr, trying without food_id...');
+          print('⚠️ order_items insert failed: $itemErr, retrying without food_id...');
           try {
             final fallbackItems = items.map((e) => {
               'order_id': orderId,
+              'food_id': null,
               'name': e.item.name,
               'price': e.item.price,
               'quantity': e.quantity,
             }).toList();
             await primary.from(orderItemsTable).insert(fallbackItems);
+            print('✅ Order items inserted with null food_id fallback');
           } catch (_) {
-            // If service client is available, try it
             final svc = _svc;
             if (svc != null && svc != primary) {
               try {
-                await svc.from(orderItemsTable).insert(itemsData);
+                final fallbackItems = items.map((e) => {
+                  'order_id': orderId,
+                  'food_id': null,
+                  'name': e.item.name,
+                  'price': e.item.price,
+                  'quantity': e.quantity,
+                }).toList();
+                await svc.from(orderItemsTable).insert(fallbackItems);
               } catch (_) {}
             }
           }
@@ -240,19 +249,14 @@ class OrderRepository {
   List<Order> _parseOrders(List res) {
     final list = res.map<Map<String, dynamic>>((e) => Map<String, dynamic>.from(e)).toList();
     
-    // Debug: عرض البيانات الخام من قاعدة البيانات
-    print('📊 تم جلب ${list.length} طلب من قاعدة البيانات');
-    for (final order in list) {
-      print('طلب: id=${order['id']}, type=${order['order_type']}, lat=${order['customer_lat']}, long=${order['customer_long']}');
-    }
     return list.map((o) {
       final items =
           (o['order_items'] as List?)?.map((it) {
             final m = Map<String, dynamic>.from(it);
             return OrderItem(
               item: FoodItem(
-                id: m['food_id']?.toString() ?? m['name'],
-                name: m['name'] ?? '',
+                id: m['food_id']?.toString() ?? m['name']?.toString() ?? '',
+                name: m['name'] ?? m['item_name'] ?? '',
                 price: (m['price'] as num?)?.toDouble() ?? 0,
                 description: '',
                 imageUrl: '',
@@ -263,6 +267,7 @@ class OrderRepository {
             );
           }).toList() ??
           [];
+
       final rawAddress = o['address']?.toString() ?? '';
       String? note = o['note']?.toString() ?? o['notes']?.toString();
       if (note == null || note.trim().isEmpty) {
@@ -272,7 +277,16 @@ class OrderRepository {
           note = mNote.group(1)?.trim();
         }
       }
-      String cleanAddress = rawAddress.replaceAll(RegExp(r"\[NOTE:(.*?)\]"), '').replaceAll(RegExp(r"\[ملاحظة:(.*?)\]"), '').trim();
+
+      // Thoroughly clean the address for UI display
+      String cleanAddress = rawAddress
+          .replaceAll(RegExp(r"\[NOTE:(.*?)\]"), '')
+          .replaceAll(RegExp(r"\[ملاحظة:(.*?)\]"), '')
+          .replaceAll(RegExp(r"\[EDITED\]"), '')
+          .replaceAll(RegExp(r"\[تعديل[^\]]*\]"), '')
+          .replaceAll(RegExp(r"GPS\([-\d\.]+,[-\d\.]+\)"), '')
+          .replaceAll(RegExp(r"\[(delivery|takeaway|dinein|توصيل|سفري|صالة)\]"), '')
+          .trim();
 
       final type = o['order_type']?.toString() ?? _extractType(rawAddress);
       double? lat = (o['customer_lat'] as num?)?.toDouble();
@@ -284,11 +298,17 @@ class OrderRepository {
           long = double.tryParse(m.group(2)!);
         }
       }
+
+      final bool isOrderEdited = (o['is_edited'] == true) || 
+                                 rawAddress.contains('[EDITED]') || 
+                                 rawAddress.contains('[تعديل') || 
+                                 rawAddress.contains('تعديل لطلب');
+
       return Order(
         id: o['id']?.toString() ?? '',
         customerName: o['customer_name'] ?? '',
         phone: o['phone'] ?? '',
-        address: cleanAddress,
+        address: cleanAddress.isNotEmpty ? cleanAddress : 'بدون عنوان',
         orderType: type,
         status: (o['status'] == 'cooking')
             ? OrderStatus.cooking
@@ -298,7 +318,7 @@ class OrderRepository {
         items: items,
         customerLat: lat,
         customerLong: long,
-        isEdited: (o['is_edited'] == true) || (rawAddress.contains('[EDITED]') == true),
+        isEdited: isOrderEdited,
         note: (note != null && note.trim().isNotEmpty) ? note.trim() : null,
       );
     }).toList();
@@ -476,8 +496,10 @@ class OrderRepository {
       if (customerLat != null && customerLong != null) {
         finalAddress = 'GPS($customerLat,$customerLong) $finalAddress';
       }
-      finalAddress = '[EDITED][$orderType] $finalAddress';
-      if (cleanNote != null) {
+      if (!finalAddress.contains('[EDITED]')) {
+        finalAddress = '[EDITED][$orderType] $finalAddress';
+      }
+      if (cleanNote != null && !finalAddress.contains('[NOTE:')) {
         finalAddress = '$finalAddress [NOTE:$cleanNote]';
       }
 
@@ -503,20 +525,49 @@ class OrderRepository {
           'total_price': totalPrice,
           'is_edited': true,
         };
-        await primary.from(ordersTable).update(minData).eq('id', orderId);
+        try {
+          await primary.from(ordersTable).update(minData).eq('id', orderId);
+        } catch (_) {
+          final svc = _svc;
+          if (svc != null && svc != primary) {
+            try {
+              await svc.from(ordersTable).update(minData).eq('id', orderId);
+            } catch (_) {}
+          }
+        }
       }
 
-      // Re-insert order items
-      await primary.from(orderItemsTable).delete().eq('order_id', orderId);
+      // Re-insert order items with safe food_id
+      try {
+        await primary.from(orderItemsTable).delete().eq('order_id', orderId);
+      } catch (_) {}
+
       if (items.isNotEmpty) {
-        final itemsData = items.map((e) => {
-          'order_id': orderId,
-          'food_id': e.item.id,
-          'name': e.item.name,
-          'price': e.item.price,
-          'quantity': e.quantity,
+        final itemsData = items.map((e) {
+          final isNumeric = RegExp(r'^\d+$').hasMatch(e.item.id);
+          return {
+            'order_id': orderId,
+            'food_id': isNumeric ? e.item.id : null,
+            'name': e.item.name,
+            'price': e.item.price,
+            'quantity': e.quantity,
+          };
         }).toList();
-        await primary.from(orderItemsTable).insert(itemsData);
+
+        try {
+          await primary.from(orderItemsTable).insert(itemsData);
+        } catch (_) {
+          try {
+            final fallbackItems = items.map((e) => {
+              'order_id': orderId,
+              'food_id': null,
+              'name': e.item.name,
+              'price': e.item.price,
+              'quantity': e.quantity,
+            }).toList();
+            await primary.from(orderItemsTable).insert(fallbackItems);
+          } catch (_) {}
+        }
       }
       return true;
     } catch (e) {
