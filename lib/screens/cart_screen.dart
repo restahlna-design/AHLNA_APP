@@ -581,93 +581,97 @@ class _CartScreenState extends State<CartScreen> {
                                         : 'بدون';
                                     String? orderId;
 
-                                     double? lat;
-                                     double? long;
+                                      double? lat;
+                                      double? long;
 
-                                     // === GPS ENFORCEMENT: Must have location to send order ===
-                                     bool locationOk = false;
-                                     try {
-                                       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
-                                       if (!serviceEnabled) {
-                                         if (mounted) {
-                                           setState(() => _isLoading = false);
-                                           ScaffoldMessenger.of(context).showSnackBar(
-                                             const SnackBar(
-                                               content: Text('الرجاء قم بتفعيل خدمات الموقع GPS اولاً', style: TextStyle(fontFamily: 'Cairo', fontSize: 16)),
-                                               backgroundColor: Colors.red,
-                                               duration: Duration(seconds: 3),
-                                             ),
-                                           );
-                                         }
-                                         return;
-                                       }
-                                       var permission = await Geolocator.checkPermission();
-                                       if (permission == LocationPermission.denied) {
-                                         permission = await Geolocator.requestPermission();
-                                       }
-                                       if (permission == LocationPermission.deniedForever) {
-                                         if (mounted) {
-                                           setState(() => _isLoading = false);
-                                           ScaffoldMessenger.of(context).showSnackBar(
-                                             const SnackBar(
-                                               content: Text('الرجاء فعّل صلاحية الموقع من اعدادات التطبيق', style: TextStyle(fontFamily: 'Cairo', fontSize: 16)),
-                                               backgroundColor: Colors.red,
-                                               duration: Duration(seconds: 3),
-                                             ),
-                                           );
-                                           await Geolocator.openAppSettings();
-                                         }
-                                         return;
-                                       }
-                                       if (permission == LocationPermission.denied) {
-                                         if (mounted) {
-                                           setState(() => _isLoading = false);
-                                           ScaffoldMessenger.of(context).showSnackBar(
-                                             const SnackBar(
-                                               content: Text('الرجاء اسمح بصلاحية الموقع لإرسال الطلب', style: TextStyle(fontFamily: 'Cairo', fontSize: 16)),
-                                               backgroundColor: Colors.red,
-                                               duration: Duration(seconds: 3),
-                                             ),
-                                           );
-                                         }
-                                         return;
-                                       }
-                                       // Permission granted - get position
-                                       try {
-                                         final pos = await Geolocator.getCurrentPosition(
-                                           desiredAccuracy: LocationAccuracy.low,
-                                           timeLimit: const Duration(seconds: 5),
-                                         );
-                                         lat = pos.latitude;
-                                         long = pos.longitude;
-                                         locationOk = true;
-                                       } catch (_) {
-                                         // Try last known position as fallback
-                                         final last = await Geolocator.getLastKnownPosition();
-                                         if (last != null) {
-                                           lat = last.latitude;
-                                           long = last.longitude;
-                                           locationOk = true;
-                                         }
-                                       }
-                                     } catch (_) {
-                                       // Geolocator plugin error
-                                     }
-                                     // If no location obtained at all, block order
-                                     if (!locationOk || lat == null || long == null) {
-                                       if (mounted) {
-                                         setState(() => _isLoading = false);
-                                         ScaffoldMessenger.of(context).showSnackBar(
-                                           const SnackBar(
-                                             content: Text('تعذر تحديد موقعك. تأكد من تفعيل GPS وحاول مرة اخرى', style: TextStyle(fontFamily: 'Cairo', fontSize: 16)),
-                                             backgroundColor: Colors.red,
-                                             duration: Duration(seconds: 3),
-                                           ),
-                                         );
-                                       }
-                                       return;
-                                     }
-                                     Order? targetOrder = widget.editingOrder ?? cart.editingOrder;
+                                      // 1. Check if location service (GPS hardware) is enabled on the device
+                                      final serviceEnabled = await Geolocator.isLocationServiceEnabled();
+                                      if (!serviceEnabled) {
+                                        if (mounted) {
+                                          setState(() => _isLoading = false);
+                                          _showToastNotification(
+                                            context,
+                                            'الرجاء تشغيل خدمة الموقع (GPS) في هاتفك أولاً',
+                                            isError: true,
+                                          );
+                                        }
+                                        return;
+                                      }
+
+                                      // 2. Check and request location permission
+                                      var permission = await Geolocator.checkPermission();
+                                      if (permission == LocationPermission.denied) {
+                                        permission = await Geolocator.requestPermission();
+                                      }
+                                      if (permission == LocationPermission.deniedForever) {
+                                        if (mounted) {
+                                          setState(() => _isLoading = false);
+                                          _showToastNotification(
+                                            context,
+                                            'يرجى تفعيل إذن الموقع للتطبيق من إعدادات الهاتف',
+                                            isError: true,
+                                          );
+                                          await Geolocator.openAppSettings();
+                                        }
+                                        return;
+                                      }
+                                      if (permission == LocationPermission.denied) {
+                                        if (mounted) {
+                                          setState(() => _isLoading = false);
+                                          _showToastNotification(
+                                            context,
+                                            'يجب السماح بالوصول للموقع لإتمام إرسال الطلب',
+                                            isError: true,
+                                          );
+                                        }
+                                        return;
+                                      }
+
+                                      // 3. Try to get last known position first (fast instant fallback)
+                                      try {
+                                        final lastPos = await Geolocator.getLastKnownPosition();
+                                        if (lastPos != null) {
+                                          lat = lastPos.latitude;
+                                          long = lastPos.longitude;
+                                        }
+                                      } catch (_) {}
+
+                                      // 4. Try fetching fresh accurate current position
+                                      try {
+                                        final pos = await Geolocator.getCurrentPosition(
+                                          desiredAccuracy: LocationAccuracy.high,
+                                          timeLimit: const Duration(seconds: 8),
+                                        );
+                                        lat = pos.latitude;
+                                        long = pos.longitude;
+                                      } catch (_) {
+                                        // If high accuracy timed out or failed, try medium accuracy if we don't have lat yet
+                                        if (lat == null || long == null) {
+                                          try {
+                                            final pos2 = await Geolocator.getCurrentPosition(
+                                              desiredAccuracy: LocationAccuracy.medium,
+                                              timeLimit: const Duration(seconds: 5),
+                                            );
+                                            lat = pos2.latitude;
+                                            long = pos2.longitude;
+                                          } catch (_) {}
+                                        }
+                                      }
+
+                                      // 5. Hard enforcement: if GPS is still null, block order
+                                      if (lat == null || long == null) {
+                                        if (mounted) {
+                                          setState(() => _isLoading = false);
+                                          _showToastNotification(
+                                            context,
+                                            'تعذر التقاط إشارة GPS. تأكد من تفعيل الموقع وحاول مجدداً',
+                                            isError: true,
+                                          );
+                                        }
+                                        return;
+                                      }
+
+                                      Order? targetOrder = widget.editingOrder ?? cart.editingOrder;
 
                                      if (targetOrder != null) {
                                        final success = await repo.updateOrder(

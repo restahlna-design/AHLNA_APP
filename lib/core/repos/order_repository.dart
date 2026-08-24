@@ -30,7 +30,10 @@ class OrderRepository {
     String? note,
   }) async {
     final primary = _svc ?? _c;
-    if (primary == null) return null;
+    if (primary == null) {
+      print('ERROR: Primary client is null');
+      return null;
+    }
 
     try {
       final orderId = DateTime.now().millisecondsSinceEpoch.toString();
@@ -38,19 +41,17 @@ class OrderRepository {
       final now = DateTime.now().toIso8601String();
       final cleanNote = (note != null && note.trim().isNotEmpty) ? note.trim() : null;
 
-      // Build address string that embeds EVERYTHING for backward-compat with Windows admin
+      // Build address string with embedded GPS and type for full backward compatibility
       String finalAddress = address.isNotEmpty ? address : 'بدون';
-      // Always embed GPS in address text (Windows admin reads GPS(lat,lng) from address)
       if (customerLat != null && customerLong != null) {
         finalAddress = 'GPS($customerLat,$customerLong) $finalAddress';
       }
-      // Always embed order type in address (Windows admin reads [type] from address)
       finalAddress = '[$orderType] $finalAddress';
       if (cleanNote != null) {
         finalAddress = '$finalAddress [NOTE:$cleanNote]';
       }
 
-      final orderData = <String, dynamic>{
+      final fullOrderData = <String, dynamic>{
         'id': orderId,
         'customer_name': customerName,
         'phone': phone,
@@ -60,15 +61,18 @@ class OrderRepository {
         'created_at': now,
         'order_type': orderType,
       };
-      if (cleanNote != null) orderData['note'] = cleanNote;
-      if (customerLat != null) orderData['customer_lat'] = customerLat;
-      if (customerLong != null) orderData['customer_long'] = customerLong;
+      if (cleanNote != null) fullOrderData['note'] = cleanNote;
+      if (customerLat != null) fullOrderData['customer_lat'] = customerLat;
+      if (customerLong != null) fullOrderData['customer_long'] = customerLong;
 
-      // Try inserting with all fields; on column error strip optional fields
+      // 1. Try full insert
+      bool orderInserted = false;
       try {
-        await primary.from(ordersTable).insert(orderData);
+        await primary.from(ordersTable).insert(fullOrderData);
+        orderInserted = true;
+        print('✅ Order inserted with all columns');
       } catch (e1) {
-        final err = e1.toString();
+        print('⚠️ Full insert failed: $e1, trying fallback...');
         final minData = <String, dynamic>{
           'id': orderId,
           'customer_name': customerName,
@@ -78,27 +82,32 @@ class OrderRepository {
           'total_price': totalPrice,
           'created_at': now,
         };
-        if (!err.contains('order_type')) minData['order_type'] = orderType;
-        if (!err.contains('customer_lat') && customerLat != null) minData['customer_lat'] = customerLat;
-        if (!err.contains('customer_long') && customerLong != null) minData['customer_long'] = customerLong;
-        if (!err.contains('note') && cleanNote != null) minData['note'] = cleanNote;
         try {
           await primary.from(ordersTable).insert(minData);
+          orderInserted = true;
+          print('✅ Order inserted with minimal columns fallback');
         } catch (e2) {
-          // Absolute minimum fallback - just the basic fields
-          await primary.from(ordersTable).insert({
-            'id': orderId,
-            'customer_name': customerName,
-            'phone': phone,
-            'address': finalAddress,
-            'status': 'pending',
-            'total_price': totalPrice,
-            'created_at': now,
-          });
+          print('❌ Minimal insert failed: $e2');
+          // If anon failed, try service client if available
+          final svc = _svc;
+          if (svc != null && svc != primary) {
+            try {
+              await svc.from(ordersTable).insert(minData);
+              orderInserted = true;
+              print('✅ Order inserted using service client');
+            } catch (e3) {
+              print('❌ Service client insert also failed: $e3');
+            }
+          }
         }
       }
 
-      // Insert order items
+      if (!orderInserted) {
+        print('❌ Failed to insert order after all attempts');
+        return null;
+      }
+
+      // 2. Insert order items safely
       if (items.isNotEmpty) {
         final itemsData = items.map((e) => {
           'order_id': orderId,
@@ -107,19 +116,37 @@ class OrderRepository {
           'price': e.item.price,
           'quantity': e.quantity,
         }).toList();
+        
         try {
           await primary.from(orderItemsTable).insert(itemsData);
-        } catch (_) {
-          final svc = _svc;
-          if (svc != null && svc != primary) {
-            await svc.from(orderItemsTable).insert(itemsData);
+          print('✅ Order items inserted');
+        } catch (itemErr) {
+          print('⚠️ order_items insert failed: $itemErr, trying without food_id...');
+          try {
+            final fallbackItems = items.map((e) => {
+              'order_id': orderId,
+              'name': e.item.name,
+              'price': e.item.price,
+              'quantity': e.quantity,
+            }).toList();
+            await primary.from(orderItemsTable).insert(fallbackItems);
+          } catch (_) {
+            // If service client is available, try it
+            final svc = _svc;
+            if (svc != null && svc != primary) {
+              try {
+                await svc.from(orderItemsTable).insert(itemsData);
+              } catch (_) {}
+            }
           }
         }
       }
 
+      print('🎉 Order $orderId created successfully!');
       return orderId;
-    } catch (e) {
-      print('createOrder error: $e');
+    } catch (e, st) {
+      print('❌ Fatal error in createOrder: $e');
+      print(st);
       return null;
     }
   }
