@@ -57,7 +57,9 @@
 		<key>NSLocalNetworkUsageDescription</key>
 		<string>نحتاج الوصول للشبكة للاتصال بقاعدة البيانات والخادم</string>
 		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>موقعك مطلوب لتوصيل الطلب</string>
+		<string>نحتاج موقعك لتحديد عنوان التوصيل</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>نحتاج موقعك لتحديد عنوان التوصيل</string>
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>نحتاج الوصول للصور لاختيار وحفظ الصور</string>
 		<key>LSApplicationQueriesSchemes</key>

@@ -583,12 +583,21 @@ class _CartScreenState extends State<CartScreen> {
 
                                      double? lat;
                                      double? long;
+
+                                     // === GPS ENFORCEMENT: Must have location to send order ===
+                                     bool locationOk = false;
                                      try {
                                        final serviceEnabled = await Geolocator.isLocationServiceEnabled();
                                        if (!serviceEnabled) {
                                          if (mounted) {
                                            setState(() => _isLoading = false);
-                                           _showToastNotification(context, 'الرجاء قم بتفعيل خدمات الموقع اولا', isError: true);
+                                           ScaffoldMessenger.of(context).showSnackBar(
+                                             const SnackBar(
+                                               content: Text('الرجاء قم بتفعيل خدمات الموقع GPS اولاً', style: TextStyle(fontFamily: 'Cairo', fontSize: 16)),
+                                               backgroundColor: Colors.red,
+                                               duration: Duration(seconds: 3),
+                                             ),
+                                           );
                                          }
                                          return;
                                        }
@@ -596,23 +605,67 @@ class _CartScreenState extends State<CartScreen> {
                                        if (permission == LocationPermission.denied) {
                                          permission = await Geolocator.requestPermission();
                                        }
-                                       if (permission == LocationPermission.whileInUse ||
-                                           permission == LocationPermission.always) {
-                                         try {
-                                           final pos = await Geolocator.getCurrentPosition(
-                                             desiredAccuracy: LocationAccuracy.low,
-                                             timeLimit: const Duration(seconds: 5),
+                                       if (permission == LocationPermission.deniedForever) {
+                                         if (mounted) {
+                                           setState(() => _isLoading = false);
+                                           ScaffoldMessenger.of(context).showSnackBar(
+                                             const SnackBar(
+                                               content: Text('الرجاء فعّل صلاحية الموقع من اعدادات التطبيق', style: TextStyle(fontFamily: 'Cairo', fontSize: 16)),
+                                               backgroundColor: Colors.red,
+                                               duration: Duration(seconds: 3),
+                                             ),
                                            );
-                                           lat = pos.latitude;
-                                           long = pos.longitude;
-                                         } catch (_) {
-                                           final last = await Geolocator.getLastKnownPosition();
-                                           lat = last?.latitude;
-                                           long = last?.longitude;
+                                           await Geolocator.openAppSettings();
+                                         }
+                                         return;
+                                       }
+                                       if (permission == LocationPermission.denied) {
+                                         if (mounted) {
+                                           setState(() => _isLoading = false);
+                                           ScaffoldMessenger.of(context).showSnackBar(
+                                             const SnackBar(
+                                               content: Text('الرجاء اسمح بصلاحية الموقع لإرسال الطلب', style: TextStyle(fontFamily: 'Cairo', fontSize: 16)),
+                                               backgroundColor: Colors.red,
+                                               duration: Duration(seconds: 3),
+                                             ),
+                                           );
+                                         }
+                                         return;
+                                       }
+                                       // Permission granted - get position
+                                       try {
+                                         final pos = await Geolocator.getCurrentPosition(
+                                           desiredAccuracy: LocationAccuracy.low,
+                                           timeLimit: const Duration(seconds: 5),
+                                         );
+                                         lat = pos.latitude;
+                                         long = pos.longitude;
+                                         locationOk = true;
+                                       } catch (_) {
+                                         // Try last known position as fallback
+                                         final last = await Geolocator.getLastKnownPosition();
+                                         if (last != null) {
+                                           lat = last.latitude;
+                                           long = last.longitude;
+                                           locationOk = true;
                                          }
                                        }
                                      } catch (_) {
-                                       // GPS unavailable - proceed without location
+                                       // Geolocator plugin error
+                                     }
+                                     // If no location obtained at all, block order
+                                     if (!locationOk || lat == null || long == null) {
+                                       if (mounted) {
+                                         setState(() => _isLoading = false);
+                                         ScaffoldMessenger.of(context).showSnackBar(
+                                           const SnackBar(
+                                             content: Text('تعذر تحديد موقعك. تأكد من تفعيل GPS وحاول مرة اخرى', style: TextStyle(fontFamily: 'Cairo', fontSize: 16)),
+                                             backgroundColor: Colors.red,
+                                             duration: Duration(seconds: 3),
+                                           ),
+                                         );
+                                       }
+                                       return;
                                      }
                                      Order? targetOrder = widget.editingOrder ?? cart.editingOrder;
 
