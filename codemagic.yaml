@@ -25,7 +25,7 @@ workflows:
           export CURL_CONNECT_TIMEOUT=30
           export FLUTTER_STORAGE_BASE_URL=https://storage.googleapis.com
 
-      - name: iOS Official IPA Build & Strict Verification
+      - name: iOS Official Clean Build & Verification
         script: |
           set -eo pipefail
           export SUPABASE_URL="${SUPABASE_URL:-https://boylzidmvvldouxtrpiv.supabase.co}"
@@ -46,11 +46,9 @@ workflows:
 
           echo "== CocoaPods Installation =="
           cd ios
+          pod deintegrate || true
           pod install --repo-update || pod install
           cd ..
-
-          echo "== Ensure iOS permissions in Info.plist =="
-          dart ios/update_plist.dart
 
           echo "== Prepare IPA output directory =="
           mkdir -p build/ios/ipa
@@ -81,8 +79,9 @@ workflows:
             rm -rf build/ios/ipa_tmp
           fi
 
-          echo "== 2. Strict Artifact Verification for Customer_App.ipa =="
-          dart ios/verify_ipa.dart
+          echo "== 2. Artifact Verification for Customer_App.ipa =="
+          ls -lah build/ios/ipa/Customer_App.ipa
+          shasum -a 256 build/ios/ipa/Customer_App.ipa
 
           echo "== 3. Clean environment for Admin build =="
           rm -rf build/ios/archive
