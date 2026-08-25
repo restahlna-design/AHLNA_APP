@@ -1,12 +1,13 @@
 workflows:
-  ios_unsigned_release:
-    name: iOS Unsigned IPA (Release)
+  ios_app_store_release:
+    name: iOS App Store Connect Release
     max_build_duration: 120
     environment:
       flutter: stable
       xcode: latest
       groups:
         - supabase
+        - app_store_credentials
       vars:
         FLUTTER_VERSION: "3.24.5"
         CM_NETWORK_TIMEOUT: 600
@@ -14,7 +15,7 @@ workflows:
       events:
         - push
       branch_patterns:
-        - pattern: ".*"
+        - pattern: "main"
           include: true
           source: true
     scripts:
@@ -25,113 +26,54 @@ workflows:
           export CURL_CONNECT_TIMEOUT=30
           export FLUTTER_STORAGE_BASE_URL=https://storage.googleapis.com
 
-      - name: iOS Official Clean Build & Verification
+      - name: Set up code signing settings on Codemagic
         script: |
-          set -eo pipefail
-          export SUPABASE_URL="${SUPABASE_URL:-https://boylzidmvvldouxtrpiv.supabase.co}"
-          export SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}"
-          export SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-}"
+          echo "== Initializing Keychain & Fetching Apple Signing Files =="
+          keychain initialize || true
+          if [ -n "$APP_STORE_CONNECT_PRIVATE_KEY" ] || [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ]; then
+            app-store-connect fetch-signing-files "com.example.ahlnaDaquq" --type IOS_APP_STORE --create || echo "Signing fetch completed/skipped"
+            keychain add-certificates || true
+            xcode-project use-profiles || true
+          fi
 
-          echo "== Git Build Information =="
-          echo "Commit SHA: $(git rev-parse HEAD)"
-          echo "Commit Message: $(git log -1 --pretty=%B)"
-          echo "Branch: $(git rev-parse --abbrev-ref HEAD)"
-          echo "Flutter Version: $(flutter --version | head -n 1)"
-          echo "Build Time: $(date)"
-
+      - name: Flutter clean & Dependencies
+        script: |
           echo "== Clean previous build artifacts =="
-          rm -rf build
           flutter clean
           flutter pub get
-
-          echo "== CocoaPods Installation =="
           cd ios
           pod deintegrate || true
           pod install --repo-update || pod install
           cd ..
 
-          echo "== Prepare IPA output directory =="
-          mkdir -p build/ios/ipa
+      - name: Build Official Release IPA (Customer App)
+        script: |
+          set -eo pipefail
+          export SUPABASE_URL="${SUPABASE_URL:-https://boylzidmvvldouxtrpiv.supabase.co}"
+          export SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}"
 
-          echo "== 1. Build Customer iOS (Official flutter build ipa) =="
-          flutter build ipa --release --no-codesign \
+          echo "== Git Build Information =="
+          echo "Commit SHA: $(git rev-parse HEAD)"
+          echo "Flutter Version: $(flutter --version | head -n 1)"
+          echo "Xcode Version: $(xcodebuild -version | head -n 1)"
+          echo "Build Time: $(date)"
+
+          # Build official Release IPA
+          flutter build ipa --release \
             --target lib/main.dart \
             --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
-            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}" \
-            --dart-define=SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
+            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
 
-          echo "== Locate and standardize Customer_App.ipa =="
-          if [ -d build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app ]; then
-            mkdir -p build/ios/ipa_tmp/Payload
-            cp -R build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app build/ios/ipa_tmp/Payload/
-            pushd build/ios/ipa_tmp >/dev/null
-            zip -r Customer_App.ipa Payload
-            mv Customer_App.ipa ../ipa/Customer_App.ipa
-            popd >/dev/null
-            rm -rf build/ios/ipa_tmp
-          elif [ -d build/ios/iphoneos/Runner.app ]; then
-            mkdir -p build/ios/ipa_tmp/Payload
-            cp -R build/ios/iphoneos/Runner.app build/ios/ipa_tmp/Payload/
-            pushd build/ios/ipa_tmp >/dev/null
-            zip -r Customer_App.ipa Payload
-            mv Customer_App.ipa ../ipa/Customer_App.ipa
-            popd >/dev/null
-            rm -rf build/ios/ipa_tmp
-          fi
-
-          echo "== 2. Artifact Verification for Customer_App.ipa =="
-          ls -lah build/ios/ipa/Customer_App.ipa
-          shasum -a 256 build/ios/ipa/Customer_App.ipa
-
-          echo "== 3. Clean environment for Admin build =="
-          rm -rf build/ios/archive
-          rm -rf build/ios/iphoneos
-
-          echo "== 4. Build Admin iOS (Official flutter build ipa) =="
-          ADMIN_PLIST="ios/Runner/Info.plist"
-          /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Ahlna Admin" "$ADMIN_PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Ahlna Admin" "$ADMIN_PLIST" 2>/dev/null || true
-
-          flutter build ipa --release --no-codesign \
-            --target lib/admin/main_admin.dart \
-            --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
-            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}" \
-            --dart-define=SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
-
-          echo "== Locate and standardize Admin_App.ipa =="
-          if [ -d build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app ]; then
-            mkdir -p build/ios/ipa_tmp/Payload
-            cp -R build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app build/ios/ipa_tmp/Payload/
-            pushd build/ios/ipa_tmp >/dev/null
-            zip -r Admin_App.ipa Payload
-            mv Admin_App.ipa ../ipa/Admin_App.ipa
-            popd >/dev/null
-            rm -rf build/ios/ipa_tmp
-          elif [ -d build/ios/iphoneos/Runner.app ]; then
-            mkdir -p build/ios/ipa_tmp/Payload
-            cp -R build/ios/iphoneos/Runner.app build/ios/ipa_tmp/Payload/
-            pushd build/ios/ipa_tmp >/dev/null
-            zip -r Admin_App.ipa Payload
-            mv Admin_App.ipa ../ipa/Admin_App.ipa
-            popd >/dev/null
-            rm -rf build/ios/ipa_tmp
-          fi
-
-          echo "== Revert Admin Info.plist changes in source =="
-          git checkout ios/Runner/Info.plist || true
-
-          echo "== Bundle Dual-IPAs =="
-          pushd build/ios/ipa >/dev/null
-          rm -f Dual-IPAs.zip || true
-          zip -r Dual-IPAs.zip Customer_App.ipa Admin_App.ipa || true
-          popd >/dev/null
-
-          echo "== Final IPA Artifacts Summary =="
+          echo "== Final Artifact Verification =="
           ls -lah build/ios/ipa/
+          shasum -a 256 build/ios/ipa/*.ipa || true
     artifacts:
-      - build/ios/ipa/Customer_App.ipa
-      - build/ios/ipa/Admin_App.ipa
-      - build/ios/ipa/Dual-IPAs.zip
+      - build/ios/ipa/*.ipa
     publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
       email:
         recipients:
           - your@email.com
