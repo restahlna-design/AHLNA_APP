@@ -33,13 +33,23 @@ workflows:
           echo "== Initializing Keychain =="
           keychain initialize
           
-          echo "== Creating/Fetching Apple Distribution Certificate =="
-          app-store-connect certificates create --type IOS_DISTRIBUTION || echo "Certificate create attempted"
+          echo "== Generating RSA Key & CSR for Distribution Certificate =="
+          CERT_KEY="/Users/builder/dist_key.pem"
+          CERT_CSR="/Users/builder/dist_csr.csr"
+          openssl genrsa -out "$CERT_KEY" 2048
+          openssl req -new -key "$CERT_KEY" -out "$CERT_CSR" -subj "/CN=AHLNA App Store Distribution/C=IQ"
+          
+          echo "== Creating Apple Distribution Certificate =="
+          app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --csr "$CERT_CSR" \
+            --private-key "$CERT_KEY" || echo "Certificate create attempted/completed"
           
           echo "== Fetching/Creating App Store Provisioning Profile =="
           app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
             --type IOS_APP_STORE \
-            --create || echo "Profile fetch attempted"
+            --create \
+            --private-key "$CERT_KEY" || echo "Profile fetch attempted"
             
           keychain add-certificates
           xcode-project use-profiles
