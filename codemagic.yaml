@@ -57,8 +57,8 @@ workflows:
 
           echo "== Force iOS deployment target to 13.0 =="
           if [ -f ios/Podfile ]; then
-            sed -E -i '' "s/#[[:space:]]*platform :ios, '([0-9.]+)'/platform :ios, '13.0'/" ios/Podfile || true
-            sed -E -i '' "s/platform :ios, '([0-9.]+)'/platform :ios, '13.0'/" ios/Podfile || true
+            sed -E -i '' "s/#[[:space:]]*platform :ios, '([0-9.]+)'/platform :ios, '15.0'/" ios/Podfile || true
+            sed -E -i '' "s/platform :ios, '([0-9.]+)'/platform :ios, '15.0'/" ios/Podfile || true
           fi
 
           PLIST="ios/Runner/Info.plist"
