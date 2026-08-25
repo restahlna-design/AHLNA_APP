@@ -18,6 +18,7 @@ workflows:
       vars:
         FLUTTER_VERSION: "3.24.5"
         CM_NETWORK_TIMEOUT: 600
+        APP_STORE_APPLE_ID: 6804920766
     triggering:
       events:
         - push
@@ -60,7 +61,6 @@ workflows:
           echo "Xcode Version: $(xcodebuild -version | head -n 1)"
           echo "Build Time: $(date)"
 
-          # Build official Release IPA using Codemagic export options
           EXPORT_PLIST="${HOME}/export_options.plist"
           if [ ! -f "$EXPORT_PLIST" ]; then
             EXPORT_PLIST="/Users/builder/export_options.plist"
