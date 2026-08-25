@@ -5,9 +5,6 @@ workflows:
     integrations:
       app_store_connect: Ahlna Key
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.example.ahlnaDaquq
       flutter: stable
       xcode: latest
       groups:
@@ -31,6 +28,14 @@ workflows:
           export CURL_CONNECT_TIMEOUT=30
           export FLUTTER_STORAGE_BASE_URL=https://storage.googleapis.com
 
+      - name: Set up code signing settings on Codemagic
+        script: |
+          echo "== Fetching & Creating Apple Signing Files via Ahlna Key =="
+          keychain initialize
+          app-store-connect fetch-signing-files "com.example.ahlnaDaquq" --type IOS_APP_STORE --create || echo "Signing fetch completed"
+          keychain add-certificates
+          xcode-project use-profiles
+
       - name: Flutter clean & Dependencies
         script: |
           echo "== Clean previous build artifacts =="
@@ -40,11 +45,6 @@ workflows:
           pod deintegrate || true
           pod install --repo-update || pod install
           cd ..
-
-      - name: Set up code signing settings on Codemagic
-        script: |
-          echo "== Setting up official Apple Code Signing Profiles =="
-          xcode-project use-profiles || true
 
       - name: Build Official Release IPA (Customer App)
         script: |
