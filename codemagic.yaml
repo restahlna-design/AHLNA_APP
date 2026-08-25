@@ -34,24 +34,26 @@ workflows:
           export SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveWx6aWRtdnZsZG91eHRycGl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NDQ0NjgsImV4cCI6MjA3OTQyMDQ2OH0.k-YInG1GfcBK6GQCjOuGMYcP_m2Eq7yTQSPuspCExr0}"
           export SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY:-eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveWx6aWRtdnZsZG91eHRycGl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NDQ0NjgsImV4cCI6MjA3OTQyMDQ2OH0.GnddzO4SFff1ze0pdvmk-X-FKxpn9ajdm5Q4hjbiGoY}"
           export CM_EXPORT_DIR="${CM_EXPORT_DIR:-build/ios/ipa}"
-          echo "== Triggering dual iOS build (Manual Packaging) at $(date) =="
+          echo "== Git Build Information =="
+          echo "Commit SHA: $(git rev-parse HEAD)"
+          echo "Commit Message: $(git log -1 --pretty=%B)"
+          echo "Branch: $(git rev-parse --abbrev-ref HEAD)"
+          echo "Flutter Version: $(flutter --version | head -n 1)"
+          echo "== Triggering dual iOS build at $(date) =="
 
           echo "== Clean build artifacts =="
           rm -f ios/Podfile.lock || true
-          rm -f ios/Podfile || true
+          # Keep Podfile
           rm -rf build
           flutter clean
 
           echo "== Dependencies =="
           flutter pub get
 
-          echo "== Generate Podfile via Flutter iOS Config =="
-          flutter build ios --config-only --no-codesign || true
-          if [ ! -f ios/Podfile ]; then
-            echo "Podfile still missing, forcing flutter create iOS structure..."
-            flutter create . --platforms ios
-            flutter build ios --config-only --no-codesign || true
-          fi
+          echo "== Verify Podfile & Setup =="
+          flutter pub get
+          cd ios && pod install --repo-update || pod install
+          cd ..
 
           echo "== Force iOS deployment target to 13.0 =="
           if [ -f ios/Podfile ]; then
@@ -199,6 +201,8 @@ workflows:
              echo "Error: Runner.app not found for Customer build"
           fi
 
+          echo "== Clean previous Runner.app for fresh Admin build =="
+          rm -rf build/ios/iphoneos/Runner.app
           echo "== Build Admin iOS (unsigned) =="
           flutter build ios --release --no-codesign \
             --target lib/admin/main_admin.dart \
@@ -256,9 +260,9 @@ workflows:
             exit 1
           fi
     artifacts:
-      - build/ios/ipa/*.ipa
-      - $CM_EXPORT_DIR/*.ipa
-      - $CM_EXPORT_DIR/*.zip
+      - build/ios/ipa/Customer_App.ipa
+      - build/ios/ipa/Admin_App.ipa
+      - build/ios/ipa/Dual-IPAs.zip
     publishing:
       email:
         recipients:
