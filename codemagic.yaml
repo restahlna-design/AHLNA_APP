@@ -30,8 +30,8 @@ workflows:
         script: |
           echo "== Initializing Keychain & Fetching Apple Signing Files =="
           keychain initialize || true
-          if [ -n "$APP_STORE_CONNECT_PRIVATE_KEY" ] || [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ]; then
-            app-store-connect fetch-signing-files "com.example.ahlnaDaquq" --type IOS_APP_STORE --create || echo "Signing fetch completed/skipped"
+          if [ -n "$APP_STORE_CONNECT_PRIVATE_KEY" ] && [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ]; then
+            app-store-connect fetch-signing-files "com.example.ahlnaDaquq" --type IOS_APP_STORE --create || echo "Signing fetch completed"
             keychain add-certificates || true
             xcode-project use-profiles || true
           fi
@@ -70,10 +70,6 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        submit_to_app_store: false
       email:
         recipients:
           - your@email.com
