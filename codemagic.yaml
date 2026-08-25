@@ -9,7 +9,7 @@ workflows:
         provisioning_profiles:
           - Ahlna Daquq App Store
         certificates:
-          - Apple Distribution
+          - Ahlna Distribution
       flutter: stable
       xcode: latest
       groups:
@@ -45,7 +45,7 @@ workflows:
 
       - name: Set up code signing settings on Codemagic
         script: |
-          echo "== Applying Apple Distribution Certificate & Ahlna Daquq App Store Profile =="
+          echo "== Applying Ahlna Distribution Certificate & Ahlna Daquq App Store Profile =="
           xcode-project use-profiles
 
       - name: Build Official Signed Release IPA (Customer App)
