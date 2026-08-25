@@ -1,10 +1,17 @@
 workflows:
   ios_app_store_release:
-    name: iOS App Store Release
+    name: iOS App Store Connect Release
     max_build_duration: 120
     integrations:
       app_store_connect: Ahlna Key
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.example.ahlnaDaquq
+        provisioning_profiles:
+          - Ahlna Daquq App Store
+        certificates:
+          - Apple Distribution
       flutter: stable
       xcode: latest
       groups:
@@ -28,32 +35,6 @@ workflows:
           export CURL_CONNECT_TIMEOUT=30
           export FLUTTER_STORAGE_BASE_URL=https://storage.googleapis.com
 
-      - name: Set up code signing settings on Codemagic
-        script: |
-          echo "== Initializing Keychain =="
-          keychain initialize
-          
-          echo "== Generating RSA Key & CSR for Distribution Certificate =="
-          CERT_KEY="/Users/builder/dist_key.pem"
-          CERT_CSR="/Users/builder/dist_csr.csr"
-          openssl genrsa -out "$CERT_KEY" 2048
-          openssl req -new -key "$CERT_KEY" -out "$CERT_CSR" -subj "/CN=AHLNA App Store Distribution/C=IQ"
-          
-          echo "== Creating Apple Distribution Certificate =="
-          app-store-connect certificates create \
-            --type IOS_DISTRIBUTION \
-            --csr "$CERT_CSR" \
-            --private-key "$CERT_KEY" || echo "Certificate create attempted/completed"
-          
-          echo "== Fetching/Creating App Store Provisioning Profile =="
-          app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
-            --type IOS_APP_STORE \
-            --create \
-            --private-key "$CERT_KEY" || echo "Profile fetch attempted"
-            
-          keychain add-certificates
-          xcode-project use-profiles
-
       - name: Flutter clean & Dependencies
         script: |
           echo "== Clean previous build artifacts =="
@@ -64,7 +45,12 @@ workflows:
           pod install --repo-update || pod install
           cd ..
 
-      - name: Build Official Release IPA (Customer App)
+      - name: Set up code signing settings on Codemagic
+        script: |
+          echo "== Applying Apple Distribution Certificate & Ahlna Daquq App Store Profile =="
+          xcode-project use-profiles
+
+      - name: Build Official Signed Release IPA (Customer App)
         script: |
           set -eo pipefail
           export SUPABASE_URL="${SUPABASE_URL:-https://boylzidmvvldouxtrpiv.supabase.co}"
