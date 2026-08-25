@@ -72,6 +72,8 @@
 	<string>موقعك مطلوب لتوصيل الطلب</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>نحتاج الوصول للصور لاختيار وحفظ الصور</string>
+	<key>NSCameraUsageDescription</key>
+	<string>Ahlna Daquq uses the camera to let you take a photo for your profile picture.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>نحتاج الوصول للشبكة للاتصال بقاعدة البيانات والخادم</string>
 	<key>NSAppTransportSecurity</key>
