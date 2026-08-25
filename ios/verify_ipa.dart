@@ -1,7 +1,7 @@
 import 'dart:io';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
-import 'package:archive/archive_io.dart';
+import 'package:archive/archive.dart';
 
 void main() {
   final ipaFile = File('build/ios/ipa/Customer_App.ipa');
@@ -18,8 +18,7 @@ void main() {
   stdout.writeln('Size: ${bytes.length} bytes (${(bytes.length / (1024 * 1024)).toStringAsFixed(2)} MB)');
   stdout.writeln('SHA-256: ${digest.toString().toUpperCase()}');
 
-  final inputStream = InputFileStream('build/ios/ipa/Customer_App.ipa');
-  final archive = ZipDecoder().decodeBuffer(inputStream);
+  final archive = ZipDecoder().decodeBytes(bytes);
 
   bool foundDiagString = false;
   for (final file in archive) {
