@@ -158,7 +158,7 @@ class _CartScreenState extends State<CartScreen> {
     final cs = Theme.of(context).colorScheme;
     return Scaffold(
       appBar: AppBar(
-        title: const Text('السلة'),
+        title: Row(mainAxisSize: MainAxisSize.min, children: [const Text('السلة'), const SizedBox(width: 8), Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2), decoration: const BoxDecoration(color: Colors.green, borderRadius: BorderRadius.all(Radius.circular(6))), child: const Text('v1.2.2', style: TextStyle(fontSize: 10, color: Colors.white, fontWeight: FontWeight.bold)))]),
         actions: [
           TextButton(
             onPressed: cart.items.isEmpty ? null : cart.clear,
