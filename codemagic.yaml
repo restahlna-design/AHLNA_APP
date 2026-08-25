@@ -3,8 +3,11 @@ workflows:
     name: iOS App Store Release
     max_build_duration: 120
     integrations:
-      app_store_connect: codemagic
+      app_store_connect: Ahlna Key
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.example.ahlnaDaquq
       flutter: stable
       xcode: latest
       groups:
@@ -40,10 +43,7 @@ workflows:
 
       - name: Set up code signing settings on Codemagic
         script: |
-          echo "== Fetching and automatically creating Apple Signing Files =="
-          keychain initialize || true
-          app-store-connect fetch-signing-files "com.example.ahlnaDaquq" --type IOS_APP_STORE --create || echo "Signing fetch completed/attempted"
-          keychain add-certificates || true
+          echo "== Setting up official Apple Code Signing Profiles =="
           xcode-project use-profiles || true
 
       - name: Build Official Release IPA (Customer App)
