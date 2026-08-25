@@ -1,8 +1,11 @@
 workflows:
   ios_app_store_release:
-    name: iOS App Store Connect Release
+    name: iOS App Store Release
     max_build_duration: 120
     environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.example.ahlnaDaquq
       flutter: stable
       xcode: latest
       groups:
@@ -26,16 +29,6 @@ workflows:
           export CURL_CONNECT_TIMEOUT=30
           export FLUTTER_STORAGE_BASE_URL=https://storage.googleapis.com
 
-      - name: Set up code signing settings on Codemagic
-        script: |
-          echo "== Initializing Keychain & Fetching Apple Signing Files =="
-          keychain initialize || true
-          if [ -n "$APP_STORE_CONNECT_PRIVATE_KEY" ] && [ -n "$APP_STORE_CONNECT_KEY_IDENTIFIER" ]; then
-            app-store-connect fetch-signing-files "com.example.ahlnaDaquq" --type IOS_APP_STORE --create || echo "Signing fetch completed"
-            keychain add-certificates || true
-            xcode-project use-profiles || true
-          fi
-
       - name: Flutter clean & Dependencies
         script: |
           echo "== Clean previous build artifacts =="
@@ -45,6 +38,11 @@ workflows:
           pod deintegrate || true
           pod install --repo-update || pod install
           cd ..
+
+      - name: Set up code signing settings on Codemagic
+        script: |
+          echo "== Setting up official Apple Code Signing Profiles =="
+          xcode-project use-profiles || true
 
       - name: Build Official Release IPA (Customer App)
         script: |
@@ -58,7 +56,7 @@ workflows:
           echo "Xcode Version: $(xcodebuild -version | head -n 1)"
           echo "Build Time: $(date)"
 
-          # Build official Release IPA
+          # Build official Release IPA with code signing
           flutter build ipa --release \
             --target lib/main.dart \
             --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
@@ -70,6 +68,10 @@ workflows:
     artifacts:
       - build/ios/ipa/*.ipa
     publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
       email:
         recipients:
           - your@email.com
