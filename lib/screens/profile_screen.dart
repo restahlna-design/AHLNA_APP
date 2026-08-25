@@ -485,6 +485,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
+            const SizedBox(height: 12),
+            const Center(
+              child: Text(
+                'DIAGNOSTIC TEST: BUILD e7a3bf0',
+                style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
+              ),
+            ),
             const SizedBox(height: 30),
           ],
         ),
