@@ -28,6 +28,22 @@ workflows:
           export CURL_CONNECT_TIMEOUT=30
           export FLUTTER_STORAGE_BASE_URL=https://storage.googleapis.com
 
+      - name: Set up code signing settings on Codemagic
+        script: |
+          echo "== Initializing Keychain =="
+          keychain initialize
+          
+          echo "== Creating/Fetching Apple Distribution Certificate =="
+          app-store-connect certificates create --type IOS_DISTRIBUTION || echo "Certificate create attempted"
+          
+          echo "== Fetching/Creating App Store Provisioning Profile =="
+          app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
+            --type IOS_APP_STORE \
+            --create || echo "Profile fetch attempted"
+            
+          keychain add-certificates
+          xcode-project use-profiles
+
       - name: Flutter clean & Dependencies
         script: |
           echo "== Clean previous build artifacts =="
@@ -37,22 +53,6 @@ workflows:
           pod deintegrate || true
           pod install --repo-update || pod install
           cd ..
-
-      - name: Set up code signing settings on Codemagic
-        script: |
-          echo "== Fetching & Creating Apple Signing Files via Ahlna Key =="
-          keychain initialize
-          
-          # List existing certificates on Apple Developer account
-          app-store-connect certificates list || true
-          
-          # Fetch or create App Store Distribution certificate and provisioning profile
-          app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
-            --type IOS_APP_STORE \
-            --create
-            
-          keychain add-certificates
-          xcode-project use-profiles
 
       - name: Build Official Release IPA (Customer App)
         script: |
