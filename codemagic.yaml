@@ -18,13 +18,13 @@ workflows:
           include: true
           source: true
     scripts:
-      - name: Pre-build setup (network & environment)
+      - name: Pre-build setup
         script: |
           echo "== Pre-build network optimization =="
           export CURL_TIMEOUT=600
           export CURL_CONNECT_TIMEOUT=30
           export FLUTTER_STORAGE_BASE_URL=https://storage.googleapis.com
-          
+
       - name: iOS Official IPA Build & Strict Verification
         script: |
           set -eo pipefail
@@ -50,54 +50,20 @@ workflows:
           cd ..
 
           echo "== Ensure iOS permissions in Info.plist =="
-          cat > update_plist.dart <<'DART'
-          import 'dart:io';
-          void main() {
-            final plistPath = 'ios/Runner/Info.plist';
-            final file = File(plistPath);
-            if (!file.existsSync()) exit(1);
-            String content = file.readAsStringSync();
-            bool changed = false;
-
-            String ensureStringKey(String text, String key, String value) {
-              final regex = RegExp('<key>' + key + r'<\/key>\s*<string>[^<]*<\/string>', multiLine: true);
-              if (regex.hasMatch(text)) {
-                text = text.replaceAll(regex, '<key>' + key + '</key>
-    <string>' + value + '</string>');
-                changed = true;
-              } else {
-                final insertPoint = text.lastIndexOf('</dict>');
-                if (insertPoint != -1) {
-                  final injection = '  <key>' + key + '</key>
-  <string>' + value + '</string>
-';
-                  text = text.substring(0, insertPoint) + injection + text.substring(insertPoint);
-                  changed = true;
-                }
-              }
-              return text;
-            }
-
-            content = ensureStringKey(content, 'NSLocalNetworkUsageDescription', 'نحتاج الوصول للشبكة للاتصال بقاعدة البيانات والخادم');
-            content = ensureStringKey(content, 'NSLocationWhenInUseUsageDescription', 'موقعك مطلوب لتوصيل الطلب');
-            content = ensureStringKey(content, 'NSPhotoLibraryUsageDescription', 'نحتاج الوصول للصور لاختيار وحفظ الصور');
-            if (changed) file.writeAsStringSync(content);
-          }
-          DART
-          dart update_plist.dart
+          dart ios/update_plist.dart
 
           echo "== Prepare IPA output directory =="
           mkdir -p build/ios/ipa
 
           echo "== 1. Build Customer iOS (Official flutter build ipa) =="
-          flutter build ipa --release --no-codesign             --target lib/main.dart             --dart-define=SUPABASE_URL="${SUPABASE_URL}"             --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"             --dart-define=SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
+          flutter build ipa --release --no-codesign \
+            --target lib/main.dart \
+            --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
+            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}" \
+            --dart-define=SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
 
           echo "== Locate and standardize Customer_App.ipa =="
-          if [ -f build/ios/ipa/*.ipa ]; then
-            CUSTOMER_FOUND=$(find build/ios/ipa -name "*.ipa" | head -n 1)
-            mv "$CUSTOMER_FOUND" build/ios/ipa/Customer_App.ipa
-          elif [ -d build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app ]; then
-            echo "Packaging from official Xcode Archive..."
+          if [ -d build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app ]; then
             mkdir -p build/ios/ipa_tmp/Payload
             cp -R build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app build/ios/ipa_tmp/Payload/
             pushd build/ios/ipa_tmp >/dev/null
@@ -106,7 +72,6 @@ workflows:
             popd >/dev/null
             rm -rf build/ios/ipa_tmp
           elif [ -d build/ios/iphoneos/Runner.app ]; then
-            echo "Packaging from release Runner.app..."
             mkdir -p build/ios/ipa_tmp/Payload
             cp -R build/ios/iphoneos/Runner.app build/ios/ipa_tmp/Payload/
             pushd build/ios/ipa_tmp >/dev/null
@@ -117,65 +82,21 @@ workflows:
           fi
 
           echo "== 2. Strict Artifact Verification for Customer_App.ipa =="
-          cat > verify_ipa.dart <<'DART'
-          import 'dart:io';
-          import 'dart:convert';
-          import 'package:crypto/crypto.dart';
-          import 'package:archive/archive_io.dart';
-
-          void main() {
-            final ipaFile = File('build/ios/ipa/Customer_App.ipa');
-            if (!ipaFile.existsSync()) {
-              stderr.writeln('❌ FATAL: Customer_App.ipa was not found in build/ios/ipa!');
-              exit(1);
-            }
-
-            final bytes = ipaFile.readAsBytesSync();
-            final digest = sha256.convert(bytes);
-            stdout.writeln('
-======================================================');
-            stdout.writeln('📋 CUSTOMER IPA ARTIFACT VERIFICATION:');
-            stdout.writeln('File: Customer_App.ipa');
-            stdout.writeln('Size: ${bytes.length} bytes (${(bytes.length / (1024 * 1024)).toStringAsFixed(2)} MB)');
-            stdout.writeln('SHA-256: ${digest.toString().toUpperCase()}');
-
-            final inputStream = InputFileStream('build/ios/ipa/Customer_App.ipa');
-            final archive = ZipDecoder().decodeBuffer(inputStream);
-            
-            bool foundDiagString = false;
-            for (final file in archive) {
-              if (file.name.contains('App.framework/App')) {
-                final content = file.content as List<int>;
-                final str = utf8.decode(content, allowMalformed: true);
-                if (str.contains('DIAGNOSTIC TEST: BUILD e7a3bf0')) {
-                  foundDiagString = true;
-                }
-              }
-            }
-
-            if (foundDiagString) {
-              stdout.writeln('🎯 DIAGNOSTIC BUILD FOUND INSIDE FINAL IPA: YES');
-              stdout.writeln('======================================================
-');
-            } else {
-              stderr.writeln('❌ FATAL: DIAGNOSTIC TEST STRING NOT FOUND IN FINAL IPA!');
-              stderr.writeln('Build failed because final IPA does not contain latest code.');
-              exit(1);
-            }
-          }
-          DART
-          dart verify_ipa.dart
+          dart ios/verify_ipa.dart
 
           echo "== 3. Clean environment for Admin build =="
           rm -rf build/ios/archive
           rm -rf build/ios/iphoneos
 
           echo "== 4. Build Admin iOS (Official flutter build ipa) =="
-          # Update Info.plist for Admin
           ADMIN_PLIST="ios/Runner/Info.plist"
           /usr/libexec/PlistBuddy -c "Set :CFBundleDisplayName Ahlna Admin" "$ADMIN_PLIST" 2>/dev/null || /usr/libexec/PlistBuddy -c "Add :CFBundleDisplayName string Ahlna Admin" "$ADMIN_PLIST" 2>/dev/null || true
 
-          flutter build ipa --release --no-codesign             --target lib/admin/main_admin.dart             --dart-define=SUPABASE_URL="${SUPABASE_URL}"             --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"             --dart-define=SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
+          flutter build ipa --release --no-codesign \
+            --target lib/admin/main_admin.dart \
+            --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
+            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}" \
+            --dart-define=SUPABASE_SERVICE_ROLE_KEY="${SUPABASE_SERVICE_ROLE_KEY}"
 
           echo "== Locate and standardize Admin_App.ipa =="
           if [ -d build/ios/archive/Runner.xcarchive/Products/Applications/Runner.app ]; then
