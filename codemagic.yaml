@@ -6,8 +6,6 @@ workflows:
       app_store_connect: Ahlna Key
     environment:
       ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.example.ahlnaDaquq
         provisioning_profiles:
           - Ahlna Daquq App Store
         certificates:
