@@ -485,12 +485,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            const Center(
-              child: Text(
-                style: TextStyle(fontSize: 11, color: Colors.grey, fontWeight: FontWeight.bold),
-              ),
-            ),
             const SizedBox(height: 30),
           ],
         ),
