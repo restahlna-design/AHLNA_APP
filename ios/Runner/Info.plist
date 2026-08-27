@@ -69,7 +69,9 @@
 	<key>CFBundleDisplayName</key>
 	<string>Ahlna Daquq</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>موقعك مطلوب لتوصيل الطلب</string>
+	<string>يحتاج التطبيق للوصول إلى موقعك لتحديد وتأكيد عنوان التوصيل بدقة لضمان صحة الطلب وتسهيل وصول السائق إليك.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>يحتاج التطبيق للوصول إلى موقعك لتحديد وتأكيد عنوان التوصيل بدقة لضمان صحة الطلب وتسهيل وصول السائق إليك.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>نحتاج الوصول للصور لاختيار وحفظ الصور</string>
 	<key>NSCameraUsageDescription</key>
