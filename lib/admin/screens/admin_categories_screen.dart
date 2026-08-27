@@ -184,7 +184,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
 
     if (confirm == true) {
       try {
-        final svc = _repo.supabaseClient;
+        final svc = SupabaseManager.client;
         if (svc != null) {
           // حذف الوجبات المرتبطة بالقسم من قاعدة البيانات نهائياً
           await svc
