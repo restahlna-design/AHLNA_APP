@@ -4,6 +4,7 @@ import 'dart:io';
 import '../../core/supabase_client.dart';
 import '../../models/category_model.dart';
 import '../../core/repos/category_repository.dart';
+import '../repos/admin_category_repository.dart';
 
 class AdminCategoriesScreen extends StatefulWidget {
   const AdminCategoriesScreen({super.key});
@@ -13,7 +14,8 @@ class AdminCategoriesScreen extends StatefulWidget {
 }
 
 class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
-  final _repo = CategoryRepository();
+  final _catRepo = CategoryRepository();
+  final _adminRepo = AdminCategoryRepository();
   List<CategoryModel> _categories = [];
   bool _loading = true;
 
@@ -24,7 +26,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
   }
 
   Future<void> _loadCategories() async {
-    final list = await _repo.getAllCategories();
+    final list = await _catRepo.getAllCategories();
     if (mounted) {
       setState(() {
         _categories = list;
@@ -80,7 +82,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
                                 final f = res.files.first;
                                 final path = f.path;
                                 if (path == null) return;
-                                final client = SupabaseManager.serviceClient ?? SupabaseManager.client;
+                                final client = SupabaseManager.client;
                                 if (client == null) return;
                                 uploading = true;
                                 setState(() {});
@@ -132,9 +134,9 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
 
                   try {
                     if (category == null) {
-                      await _repo.addCategory(newCat);
+                      await _adminRepo.addCategory(newCat);
                     } else {
-                      await _repo.updateCategory(newCat);
+                      await _adminRepo.updateCategory(newCat);
                     }
                     if (context.mounted) {
                       Navigator.pop(context);
@@ -195,7 +197,7 @@ class _AdminCategoriesScreenState extends State<AdminCategoriesScreen> {
       }
       
       // حذف القسم
-      await _repo.deleteCategory(id);
+      await _adminRepo.deleteCategory(id);
       _loadCategories();
     }
   }

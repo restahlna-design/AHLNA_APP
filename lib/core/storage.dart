@@ -7,8 +7,8 @@ class Storage {
   static const _kAddress = 'address';
   static const _kSupabaseUrl = 'supabase_url';
   static const _kSupabaseAnon = 'supabase_anon_key';
-  static const _kSupabaseSvc = 'supabase_service_key';
   static const _kTheme = 'theme_mode';
+  static const _kProfileImage = 'profile_image_path';
 
   static Future<void> saveTheme(String theme) async {
     final p = await SharedPreferences.getInstance();
@@ -19,7 +19,6 @@ class Storage {
     final p = await SharedPreferences.getInstance();
     return p.getString(_kTheme);
   }
-  static const _kProfileImage = 'profile_image_path';
 
   static Future<bool> isRegistered() async {
     final p = await SharedPreferences.getInstance();
@@ -56,24 +55,12 @@ class Storage {
     await p.setString(_kSupabaseAnon, anonKey);
   }
 
-  static Future<void> saveSupabaseServiceKey({
-    required String serviceKey,
-  }) async {
-    final p = await SharedPreferences.getInstance();
-    await p.setString(_kSupabaseSvc, serviceKey);
-  }
-
   static Future<Map<String, String>> loadSupabaseConfig() async {
     final p = await SharedPreferences.getInstance();
     return {
       'url': p.getString(_kSupabaseUrl) ?? '',
       'anon': p.getString(_kSupabaseAnon) ?? '',
     };
-  }
-
-  static Future<String> loadSupabaseServiceKey() async {
-    final p = await SharedPreferences.getInstance();
-    return p.getString(_kSupabaseSvc) ?? '';
   }
 
   static Future<void> saveProfileImage(String path) async {

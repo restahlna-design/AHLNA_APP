@@ -4,7 +4,7 @@ import 'dart:io' show Platform;
 import '../core/cart.dart';
 import '../core/storage.dart';
 import '../core/repos/order_repository.dart';
-import '../admin/models/order.dart';
+import '../models/order.dart';
 import '../core/profile.dart';
 
 class CartScreen extends StatefulWidget {

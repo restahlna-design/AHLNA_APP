@@ -21,7 +21,7 @@ import '../core/animations/fly_animation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import '../core/repos/order_repository.dart';
-import '../admin/models/order.dart';
+import '../models/order.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

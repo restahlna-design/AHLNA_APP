@@ -7,7 +7,6 @@ import '../core/ui_utils.dart';
 import '../core/cart.dart';
 import '../core/animations/fly_animation.dart';
 import 'details_screen.dart';
-import '../core/repos/food_repository.dart';
 
 class CategoryContent extends StatefulWidget {
   final String category;

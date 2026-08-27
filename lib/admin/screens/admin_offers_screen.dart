@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/repos/offers_repository.dart';
+import '../repos/admin_offers_repository.dart';
 
 class AdminOffersScreen extends StatefulWidget {
   const AdminOffersScreen({super.key});
@@ -10,6 +11,7 @@ class AdminOffersScreen extends StatefulWidget {
 
 class _AdminOffersScreenState extends State<AdminOffersScreen> {
   final repo = OffersRepository();
+  final adminRepo = AdminOffersRepository();
   final ctrl = TextEditingController();
   bool loading = false;
 
@@ -28,7 +30,7 @@ class _AdminOffersScreenState extends State<AdminOffersScreen> {
 
   Future<void> _save() async {
     setState(() => loading = true);
-    await repo.setLink(ctrl.text.trim());
+    await adminRepo.setLink(ctrl.text.trim());
     setState(() => loading = false);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
@@ -38,7 +40,7 @@ class _AdminOffersScreenState extends State<AdminOffersScreen> {
 
   Future<void> _delete() async {
     setState(() => loading = true);
-    await repo.deleteLink();
+    await adminRepo.deleteLink();
     ctrl.clear();
     setState(() => loading = false);
     if (!mounted) return;

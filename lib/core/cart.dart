@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/food_item.dart';
 
-import '../admin/models/order.dart';
+import '../models/order.dart';
 
 class CartItem {
   final FoodItem item;

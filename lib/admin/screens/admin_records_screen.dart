@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../core/admin_data.dart';
-import '../../core/repos/order_repository.dart';
+import '../repos/admin_order_repository.dart';
 
 class AdminRecordsScreen extends StatefulWidget {
   const AdminRecordsScreen({super.key});
@@ -11,7 +11,7 @@ class AdminRecordsScreen extends StatefulWidget {
 
 class _AdminRecordsScreenState extends State<AdminRecordsScreen> {
   final data = AdminData();
-  final repo = OrderRepository();
+  final repo = AdminOrderRepository();
   List<Map<String, dynamic>> records = [];
   bool isLoading = true;
 

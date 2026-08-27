@@ -10,15 +10,9 @@ class CategoryRepository {
       'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveWx6aWRtdnZsZG91eHRycGl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NDQ0NjgsImV4cCI6MjA3OTQyMDQ2OH0.k-YInG1GfcBK6GQCjOuGMYcP_m2Eq7yTQSPuspCExr0';
 
   SupabaseClient? get _c => SupabaseManager.client;
-  SupabaseClient? get _svc => SupabaseManager.serviceClient ?? _c;
 
-  /// Exposes the service client for external use (e.g. bulk updates before category deletion)
-  SupabaseClient? get supabaseClient => _svc;
-
-  /// Direct HTTP fetch — bypasses supabase_flutter SDK, works on iOS AOT Release.
   Future<List<CategoryModel>> _httpFetchCategories() async {
-    final client = HttpClient()
-      ..badCertificateCallback = (cert, host, port) => true;
+    final client = HttpClient();
     try {
       final url = Uri.parse(
           '$_supabaseUrl/rest/v1/categories?select=*&order=id.asc');
@@ -32,12 +26,10 @@ class CategoryRepository {
 
       if (resp.statusCode == 200) {
         final List<dynamic> rows = jsonDecode(body);
-        print('✅ HTTP Categories: fetched ${rows.length} categories');
         return rows
             .map((e) => CategoryModel.fromJson(Map<String, dynamic>.from(e)))
             .toList();
       } else {
-        print('❌ HTTP Categories error: ${resp.statusCode} $body');
         return [];
       }
     } catch (e) {
@@ -49,11 +41,9 @@ class CategoryRepository {
   }
 
   Future<List<CategoryModel>> getAllCategories() async {
-    // PRIMARY: Direct HTTP (reliable on iOS & Android)
     final cats = await _httpFetchCategories();
     if (cats.isNotEmpty) return cats;
 
-    // FALLBACK: supabase_flutter SDK
     final c = _c;
     if (c == null) return [];
     try {
@@ -74,7 +64,6 @@ class CategoryRepository {
     return Stream<List<CategoryModel>>.multi((controller) async {
       List<CategoryModel> currentCats = [];
 
-      // STEP 1: Immediate HTTP fetch
       try {
         final initial = await getAllCategories();
         if (initial.isNotEmpty && !controller.isClosed) {
@@ -85,7 +74,6 @@ class CategoryRepository {
         print('⚠️ streamCategories initial fetch error: $e');
       }
 
-      // STEP 2: Real-time WebSocket updates (do NOT overwrite non-empty categories with empty WebSocket data)
       final c = _c;
       if (c != null) {
         try {
@@ -113,26 +101,5 @@ class CategoryRepository {
         }
       }
     }, isBroadcast: true);
-  }
-
-  Future<void> addCategory(CategoryModel category) async {
-    final svc = _svc;
-    if (svc == null) return;
-    await svc.from('categories').insert(category.toJson());
-  }
-
-  Future<void> updateCategory(CategoryModel category) async {
-    final svc = _svc;
-    if (svc == null) return;
-    await svc
-        .from('categories')
-        .update(category.toJson())
-        .eq('id', category.id);
-  }
-
-  Future<void> deleteCategory(int id) async {
-    final svc = _svc;
-    if (svc == null) return;
-    await svc.from('categories').delete().eq('id', id);
   }
 }

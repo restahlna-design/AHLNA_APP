@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:async';
-import '../../admin/core/admin_data.dart';
+import '../core/admin_data.dart';
 import '../models/order.dart';
-import '../../core/repos/order_repository.dart';
+import '../repos/admin_order_repository.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'dart:io';
 
@@ -20,7 +20,7 @@ class AdminHomeScreen extends StatefulWidget {
 }
 
 class _AdminHomeScreenState extends State<AdminHomeScreen> {
-  final repo = OrderRepository();
+  final repo = AdminOrderRepository();
   final data = AdminData();
   List<Order> orders = [];
   Stream<List<Order>>? _stream;
@@ -424,9 +424,9 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
                 offset: const Offset(0, 4),
               ),
             ],
-            border: isCooking
-                ? Border.all(color: primaryColor, width: 2)
-                : null,
+            border: o.isEdited
+                ? Border.all(color: Colors.red, width: 2.5)
+                : (isCooking ? Border.all(color: primaryColor, width: 2) : null),
           ),
           child: Padding(
             padding: const EdgeInsets.all(12),
@@ -617,7 +617,7 @@ class _AdminHomeScreenState extends State<AdminHomeScreen> {
             offset: const Offset(0, 5),
           ),
         ],
-        border: isCooking ? Border.all(color: primaryColor, width: 2) : null,
+        border: o.isEdited ? Border.all(color: Colors.red, width: 2.5) : (isCooking ? Border.all(color: primaryColor, width: 2) : null),
       ),
       child: Column(
         children: [

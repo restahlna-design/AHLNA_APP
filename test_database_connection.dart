@@ -18,14 +18,7 @@ void main() async {
     
     print('✓ تم الحصول على عميل Supabase');
     
-    // اختبار Service Role
-    final serviceClient = SupabaseManager.serviceClient;
-    if (serviceClient == null) {
-      print('⚠ تحذير: Service Role غير متاح');
-    } else {
-      print('✓ Service Role متاح');
-    }
-    
+
     // اختبار جدول profiles
     try {
       final result = await client.from('profiles').select().limit(1);

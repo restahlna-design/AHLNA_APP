@@ -4,6 +4,7 @@ import 'dart:io';
 import '../../core/supabase_client.dart';
 import '../../models/food_item.dart';
 import '../../core/repos/food_repository.dart';
+import '../repos/admin_food_repository.dart';
 import '../../core/repos/category_repository.dart';
 import '../../models/category_model.dart';
 import 'admin_categories_screen.dart';
@@ -18,6 +19,7 @@ class AdminMenuScreen extends StatefulWidget {
 class _AdminMenuScreenState extends State<AdminMenuScreen> {
   late List<FoodItem> items;
   final repo = FoodRepository();
+  final adminFoodRepo = AdminFoodRepository();
   final catRepo = CategoryRepository();
 
   List<CategoryModel> _allCategories = [];
@@ -80,7 +82,7 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
     final filtered = items.where((e) => names.contains(e.category)).toList();
 
     // Sort based on local persistent order
-    final order = repo.getCategoryOrder(found.nameAr); // Try Arabic name first
+    final order = adminFoodRepo.getCategoryOrder(found.nameAr); // Try Arabic name first
     if (order.isEmpty && found.nameAr != found.nameEn) {
       // Try English name if empty
       // Actually we save using selectedCategory which is Arabic name in UI usually
@@ -147,7 +149,7 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
       final f = res.files.first;
       final path = f.path;
       if (path == null) return;
-      final client = SupabaseManager.serviceClient ?? SupabaseManager.client;
+      final client = SupabaseManager.client;
       if (client == null) return;
       final file = File(path);
       final name = f.name.replaceAll(' ', '_');
@@ -255,7 +257,7 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                       category: dialogSelectedCat!,
                       isAvailable: isActive,
                     );
-                    final ok = await repo.add(newItem);
+                    final ok = await adminFoodRepo.add(newItem);
                     if (!ok) {
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
@@ -293,7 +295,7 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
       final f = res.files.first;
       final path = f.path;
       if (path == null) return;
-      final client = SupabaseManager.serviceClient ?? SupabaseManager.client;
+      final client = SupabaseManager.client;
       if (client == null) return;
       final file = File(path);
       final name = f.name.replaceAll(' ', '_');
@@ -387,7 +389,7 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                       final idx = items.indexWhere((e) => e.id == item.id);
                       items[idx] = updated;
                     });
-                    final ok = await repo.update(updated);
+                    final ok = await adminFoodRepo.update(updated);
                     if (!ok) {
                       setState(() {
                         final idx = items.indexWhere((e) => e.id == item.id);
@@ -577,7 +579,7 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                                           );
                                           if (li != -1) list[li] = updated;
                                         });
-                                        final ok = await repo.update(updated);
+                                        final ok = await adminFoodRepo.update(updated);
                                         if (!ok) {
                                           setState(() {
                                             final idx = items.indexWhere(
@@ -642,7 +644,7 @@ class _AdminMenuScreenState extends State<AdminMenuScreen> {
                                           },
                                         );
                                         if (ok == true) {
-                                          final success = await repo.delete(
+                                          final success = await adminFoodRepo.delete(
                                             it.id,
                                           );
                                           if (success) {
