@@ -1,15 +1,13 @@
 workflows:
-  ios_app_store_release:
+  ios-app-store-release:
     name: iOS App Store Connect Release
     max_build_duration: 120
     integrations:
       app_store_connect: Ahlna Key
     environment:
       ios_signing:
-        provisioning_profiles:
-          - Ahlna Daquq App Store
-        certificates:
-          - Ahlna Distribution
+        distribution_type: app_store
+        bundle_identifier: com.example.ahlnaDaquq
       flutter: stable
       xcode: latest
       groups:
@@ -46,7 +44,107 @@ workflows:
 
       - name: Set up code signing settings on Codemagic
         script: |
-          echo "== Applying Ahlna Distribution Certificate & Ahlna Daquq App Store Profile =="
+          echo "== Applying Automatic Code Signing Profiles =="
+          xcode-project use-profiles
+
+      - name: Build Official Signed Release IPA (Customer App)
+        script: |
+          set -eo pipefail
+          export SUPABASE_URL="${SUPABASE_URL:-https://boylzidmvvldouxtrpiv.supabase.co}"
+          export SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY:-}"
+
+          echo "== Git Build Information =="
+          echo "Commit SHA: $(git rev-parse HEAD)"
+          echo "Flutter Version: $(flutter --version | head -n 1)"
+          echo "Xcode Version: $(xcodebuild -version | head -n 1)"
+          echo "Build Time: $(date)"
+
+          EXPORT_PLIST="${HOME}/export_options.plist"
+          if [ ! -f "$EXPORT_PLIST" ]; then
+            EXPORT_PLIST="/Users/builder/export_options.plist"
+          fi
+          
+          echo "== Export Options Plist Path: $EXPORT_PLIST =="
+          cat "$EXPORT_PLIST" || true
+
+          flutter build ipa --release \
+            --target lib/main.dart \
+            --export-options-plist "$EXPORT_PLIST" \
+            --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
+            --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
+
+          echo "== Final Signed Artifact Verification =="
+          mkdir -p build/ios/ipa
+          if [ ! -f build/ios/ipa/*.ipa ] && [ -d build/ios/archive/Runner.xcarchive ]; then
+            echo "Exporting IPA via xcodebuild from archive..."
+            xcodebuild -exportArchive \
+              -archivePath build/ios/archive/Runner.xcarchive \
+              -exportPath build/ios/ipa \
+              -exportOptionsPlist "$EXPORT_PLIST"
+          fi
+
+          ls -lah build/ios/ipa/
+          shasum -a 256 build/ios/ipa/*.ipa || true
+    artifacts:
+      - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
+      email:
+        recipients:
+          - your@email.com
+        notify:
+          success: true
+          failure: true
+
+  ios_app_store_release:
+    name: iOS App Store Connect Release (Legacy Alias)
+    max_build_duration: 120
+    integrations:
+      app_store_connect: Ahlna Key
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.example.ahlnaDaquq
+      flutter: stable
+      xcode: latest
+      groups:
+        - supabase
+        - app_store_credentials
+      vars:
+        FLUTTER_VERSION: "3.24.5"
+        CM_NETWORK_TIMEOUT: 600
+        APP_STORE_APPLE_ID: 6804920766
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: "main"
+          include: true
+          source: true
+    scripts:
+      - name: Pre-build setup
+        script: |
+          echo "== Pre-build network optimization =="
+          export CURL_TIMEOUT=600
+          export CURL_CONNECT_TIMEOUT=30
+          export FLUTTER_STORAGE_BASE_URL=https://storage.googleapis.com
+
+      - name: Flutter clean & Dependencies
+        script: |
+          echo "== Clean previous build artifacts =="
+          flutter clean
+          flutter pub get
+          cd ios
+          pod deintegrate || true
+          pod install --repo-update || pod install
+          cd ..
+
+      - name: Set up code signing settings on Codemagic
+        script: |
+          echo "== Applying Automatic Code Signing Profiles =="
           xcode-project use-profiles
 
       - name: Build Official Signed Release IPA (Customer App)

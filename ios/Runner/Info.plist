@@ -26,6 +26,8 @@
 	<string>$(FLUTTER_BUILD_NUMBER)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
@@ -66,8 +68,6 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
-	<key>CFBundleDisplayName</key>
-	<string>Ahlna Daquq</string>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string>يحتاج التطبيق للوصول إلى موقعك لتحديد وتأكيد عنوان التوصيل بدقة لضمان صحة الطلب وتسهيل وصول السائق إليك.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
