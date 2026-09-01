@@ -15,6 +15,7 @@ workflows:
         CM_NETWORK_TIMEOUT: 600
         APP_STORE_APPLE_ID: 6804920766
         BUNDLE_ID: "com.example.ahlnaDaquq"
+        DEVELOPMENT_TEAM: "5H78CJ2GN6"
     triggering:
       events:
         - push
@@ -40,12 +41,12 @@ workflows:
           pod install --repo-update || pod install
           cd ..
 
-      - name: Fetch and apply active Apple signing files
+      - name: Fetch active Apple signing files & Configure Code Signing
         script: |
           echo "== Initializing clean keychain =="
           keychain initialize
           
-          echo "== Fetching active signing files from Apple Developer Portal =="
+          echo "== Fetching active distribution signing files for $BUNDLE_ID =="
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
@@ -53,8 +54,42 @@ workflows:
           echo "== Adding active certificates to keychain =="
           keychain add-certificates
           
-          echo "== Applying provisioning profiles and generating export options =="
-          xcode-project use-profiles --export-options-plist=/Users/builder/export_options.plist
+          echo "== Applying provisioning profile to Xcode project =="
+          xcode-project use-profiles
+          
+          echo "== Generating complete ExportOptions.plist with Team ID 5H78CJ2GN6 =="
+          PROFILE_NAME=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" -exec strings {} + 2>/dev/null | grep -A1 "<key>Name</key>" | grep "<string>" | head -n 1 | sed -e 's/.*<string>\(.*\)<\/string>.*/\1/')
+          if [ -z "$PROFILE_NAME" ]; then
+            PROFILE_NAME="Ahlna Daquq App Store"
+          fi
+          echo "Detected Profile Name: $PROFILE_NAME"
+          
+          cat <<EOF > /Users/builder/export_options.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>5H78CJ2GN6</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.example.ahlnaDaquq</key>
+              <string>$PROFILE_NAME</string>
+            </dict>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+          
+          echo "== ExportOptions.plist Content =="
+          cat /Users/builder/export_options.plist
 
       - name: Build Official Signed Release IPA (Customer App)
         script: |
@@ -68,17 +103,9 @@ workflows:
           echo "Xcode Version: $(xcodebuild -version | head -n 1)"
           echo "Build Time: $(date)"
 
-          EXPORT_PLIST="/Users/builder/export_options.plist"
-          if [ ! -f "$EXPORT_PLIST" ]; then
-            EXPORT_PLIST="${HOME}/export_options.plist"
-          fi
-          
-          echo "== Export Options Plist Content =="
-          cat "$EXPORT_PLIST" || true
-
           flutter build ipa --release \
             --target lib/main.dart \
-            --export-options-plist "$EXPORT_PLIST" \
+            --export-options-plist /Users/builder/export_options.plist \
             --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
             --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
 
@@ -89,7 +116,7 @@ workflows:
             xcodebuild -exportArchive \
               -archivePath build/ios/archive/Runner.xcarchive \
               -exportPath build/ios/ipa \
-              -exportOptionsPlist "$EXPORT_PLIST"
+              -exportOptionsPlist /Users/builder/export_options.plist
           fi
 
           ls -lah build/ios/ipa/
@@ -124,6 +151,7 @@ workflows:
         CM_NETWORK_TIMEOUT: 600
         APP_STORE_APPLE_ID: 6804920766
         BUNDLE_ID: "com.example.ahlnaDaquq"
+        DEVELOPMENT_TEAM: "5H78CJ2GN6"
     triggering:
       events:
         - push
@@ -149,12 +177,12 @@ workflows:
           pod install --repo-update || pod install
           cd ..
 
-      - name: Fetch and apply active Apple signing files
+      - name: Fetch active Apple signing files & Configure Code Signing
         script: |
           echo "== Initializing clean keychain =="
           keychain initialize
           
-          echo "== Fetching active signing files from Apple Developer Portal =="
+          echo "== Fetching active distribution signing files for $BUNDLE_ID =="
           app-store-connect fetch-signing-files "$BUNDLE_ID" \
             --type IOS_APP_STORE \
             --create
@@ -162,8 +190,42 @@ workflows:
           echo "== Adding active certificates to keychain =="
           keychain add-certificates
           
-          echo "== Applying provisioning profiles and generating export options =="
-          xcode-project use-profiles --export-options-plist=/Users/builder/export_options.plist
+          echo "== Applying provisioning profile to Xcode project =="
+          xcode-project use-profiles
+          
+          echo "== Generating complete ExportOptions.plist with Team ID 5H78CJ2GN6 =="
+          PROFILE_NAME=$(find ~/Library/MobileDevice/Provisioning\ Profiles -name "*.mobileprovision" -exec strings {} + 2>/dev/null | grep -A1 "<key>Name</key>" | grep "<string>" | head -n 1 | sed -e 's/.*<string>\(.*\)<\/string>.*/\1/')
+          if [ -z "$PROFILE_NAME" ]; then
+            PROFILE_NAME="Ahlna Daquq App Store"
+          fi
+          echo "Detected Profile Name: $PROFILE_NAME"
+          
+          cat <<EOF > /Users/builder/export_options.plist
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key>
+            <string>app-store</string>
+            <key>teamID</key>
+            <string>5H78CJ2GN6</string>
+            <key>signingStyle</key>
+            <string>manual</string>
+            <key>provisioningProfiles</key>
+            <dict>
+              <key>com.example.ahlnaDaquq</key>
+              <string>$PROFILE_NAME</string>
+            </dict>
+            <key>uploadBitcode</key>
+            <false/>
+            <key>compileBitcode</key>
+            <false/>
+          </dict>
+          </plist>
+          EOF
+          
+          echo "== ExportOptions.plist Content =="
+          cat /Users/builder/export_options.plist
 
       - name: Build Official Signed Release IPA (Customer App)
         script: |
@@ -177,17 +239,9 @@ workflows:
           echo "Xcode Version: $(xcodebuild -version | head -n 1)"
           echo "Build Time: $(date)"
 
-          EXPORT_PLIST="/Users/builder/export_options.plist"
-          if [ ! -f "$EXPORT_PLIST" ]; then
-            EXPORT_PLIST="${HOME}/export_options.plist"
-          fi
-          
-          echo "== Export Options Plist Content =="
-          cat "$EXPORT_PLIST" || true
-
           flutter build ipa --release \
             --target lib/main.dart \
-            --export-options-plist "$EXPORT_PLIST" \
+            --export-options-plist /Users/builder/export_options.plist \
             --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
             --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
 
@@ -198,7 +252,7 @@ workflows:
             xcodebuild -exportArchive \
               -archivePath build/ios/archive/Runner.xcarchive \
               -exportPath build/ios/ipa \
-              -exportOptionsPlist "$EXPORT_PLIST"
+              -exportOptionsPlist /Users/builder/export_options.plist
           fi
 
           ls -lah build/ios/ipa/
