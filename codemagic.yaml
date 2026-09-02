@@ -6,10 +6,8 @@ workflows:
       app_store_connect: Ahlna Key
     environment:
       ios_signing:
-        provisioning_profiles:
-          - Ahlna Daquq App Store
-        certificates:
-          - Ahlna Distribution
+        distribution_type: app_store
+        bundle_identifier: com.example.ahlnaDaquq
       flutter: stable
       xcode: latest
       groups:
@@ -46,7 +44,7 @@ workflows:
 
       - name: Set up code signing settings on Codemagic
         script: |
-          echo "== Applying Ahlna Distribution Certificate & Ahlna Daquq App Store Profile =="
+          echo "== Configuring Code Signing via Codemagic Automatic Signing =="
           xcode-project use-profiles
 
       - name: Build Official Signed Release IPA (Customer App)
@@ -108,10 +106,8 @@ workflows:
       app_store_connect: Ahlna Key
     environment:
       ios_signing:
-        provisioning_profiles:
-          - Ahlna Daquq App Store
-        certificates:
-          - Ahlna Distribution
+        distribution_type: app_store
+        bundle_identifier: com.example.ahlnaDaquq
       flutter: stable
       xcode: latest
       groups:
@@ -148,7 +144,7 @@ workflows:
 
       - name: Set up code signing settings on Codemagic
         script: |
-          echo "== Applying Ahlna Distribution Certificate & Ahlna Daquq App Store Profile =="
+          echo "== Configuring Code Signing via Codemagic Automatic Signing =="
           xcode-project use-profiles
 
       - name: Build Official Signed Release IPA (Customer App)
