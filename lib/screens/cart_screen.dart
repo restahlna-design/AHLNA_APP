@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
-import 'dart:io' show Platform;
 import '../core/cart.dart';
 import '../core/storage.dart';
 import '../core/repos/order_repository.dart';

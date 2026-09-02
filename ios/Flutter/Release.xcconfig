@@ -1,6 +1,1 @@
 #include "Generated.xcconfig"
-CODE_SIGN_STYLE=Manual
-DEVELOPMENT_TEAM=5H78CJ2GN6
-PROVISIONING_PROFILE_SPECIFIER=Ahlna Daquq App Store
-CODE_SIGN_IDENTITY=Apple Distribution
-CODE_SIGN_IDENTITY[sdk=iphoneos*]=Apple Distribution
