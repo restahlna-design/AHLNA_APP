@@ -69,24 +69,11 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>يحتاج التطبيق للوصول إلى موقعك لتحديد وتأكيد عنوان التوصيل بدقة لضمان صحة الطلب وتسهيل وصول السائق إليك.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>يحتاج التطبيق للوصول إلى موقعك لتحديد وتأكيد عنوان التوصيل بدقة لضمان صحة الطلب وتسهيل وصول السائق إليك.</string>
+	<string>نحتاج موقعك لتحديد عنوان التوصيل بدقة</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>نحتاج الوصول للصور لاختيار وحفظ الصور</string>
 	<key>NSCameraUsageDescription</key>
-	<string>Ahlna Daquq uses the camera to let you take a photo for your profile picture.</string>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>نحتاج الوصول للشبكة للاتصال بقاعدة البيانات والخادم</string>
-	<key>NSAppTransportSecurity</key>
-	<dict>
-		<key>NSAllowsArbitraryLoads</key>
-		<true/>
-		<key>NSAllowsArbitraryLoadsInWebContent</key>
-		<true/>
-		<key>NSAllowsLocalNetworking</key>
-		<true/>
-	</dict>
+	<string>نحتاج الوصول إلى الكاميرا لالتقاط صورة الملف الشخصي</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>comgooglemaps</string>
