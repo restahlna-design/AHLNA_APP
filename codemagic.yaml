@@ -1,22 +1,15 @@
 workflows:
   ios-app-store-release:
-    name: iOS App Store Connect Release
+    name: iOS Release IPA (Unsigned)
     max_build_duration: 120
-    integrations:
-      app_store_connect: Ahlna Key
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.example.ahlnaDaquq
       flutter: stable
       xcode: latest
       groups:
         - supabase
-        - app_store_credentials
       vars:
         FLUTTER_VERSION: "3.24.5"
         CM_NETWORK_TIMEOUT: 600
-        APP_STORE_APPLE_ID: 6804920766
     triggering:
       events:
         - push
@@ -42,12 +35,7 @@ workflows:
           pod install --repo-update || pod install
           cd ..
 
-      - name: Set up code signing settings on Codemagic
-        script: |
-          echo "== Configuring Code Signing via Codemagic Automatic Signing =="
-          xcode-project use-profiles
-
-      - name: Build Official Signed Release IPA (Customer App)
+      - name: Build Unsigned Release IPA (Customer App)
         script: |
           set -eo pipefail
           export SUPABASE_URL="${SUPABASE_URL:-https://boylzidmvvldouxtrpiv.supabase.co}"
@@ -59,64 +47,35 @@ workflows:
           echo "Xcode Version: $(xcodebuild -version | head -n 1)"
           echo "Build Time: $(date)"
 
-          EXPORT_PLIST="${HOME}/export_options.plist"
-          if [ ! -f "$EXPORT_PLIST" ]; then
-            EXPORT_PLIST="/Users/builder/export_options.plist"
-          fi
-          
-          echo "== Export Options Plist Content =="
-          cat "$EXPORT_PLIST" || true
-
-          flutter build ipa --release \
+          flutter build ios --release --no-codesign \
             --target lib/main.dart \
-            --export-options-plist "$EXPORT_PLIST" \
             --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
             --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
 
-          echo "== Final Signed Artifact Verification =="
-          mkdir -p build/ios/ipa
-          if [ ! -f build/ios/ipa/*.ipa ] && [ -d build/ios/archive/Runner.xcarchive ]; then
-            echo "Exporting IPA via xcodebuild from archive..."
-            xcodebuild -exportArchive \
-              -archivePath build/ios/archive/Runner.xcarchive \
-              -exportPath build/ios/ipa \
-              -exportOptionsPlist "$EXPORT_PLIST"
-          fi
+          echo "== Packaging Unsigned IPA =="
+          mkdir -p build/ios/ipa/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa
+          zip -qr ahlna_daquq_unsigned.ipa Payload
+          rm -rf Payload
 
-          ls -lah build/ios/ipa/
-          shasum -a 256 build/ios/ipa/*.ipa || true
+          echo "== Verification of Unsigned IPA =="
+          ls -lah ahlna_daquq_unsigned.ipa
+          shasum -a 256 ahlna_daquq_unsigned.ipa
     artifacts:
       - build/ios/ipa/*.ipa
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        submit_to_app_store: false
-      email:
-        recipients:
-          - your@email.com
-        notify:
-          success: true
-          failure: true
 
   ios_app_store_release:
-    name: iOS App Store Connect Release (Legacy Alias)
+    name: iOS Release IPA (Unsigned Legacy Alias)
     max_build_duration: 120
-    integrations:
-      app_store_connect: Ahlna Key
     environment:
-      ios_signing:
-        distribution_type: app_store
-        bundle_identifier: com.example.ahlnaDaquq
       flutter: stable
       xcode: latest
       groups:
         - supabase
-        - app_store_credentials
       vars:
         FLUTTER_VERSION: "3.24.5"
         CM_NETWORK_TIMEOUT: 600
-        APP_STORE_APPLE_ID: 6804920766
     triggering:
       events:
         - push
@@ -142,12 +101,7 @@ workflows:
           pod install --repo-update || pod install
           cd ..
 
-      - name: Set up code signing settings on Codemagic
-        script: |
-          echo "== Configuring Code Signing via Codemagic Automatic Signing =="
-          xcode-project use-profiles
-
-      - name: Build Official Signed Release IPA (Customer App)
+      - name: Build Unsigned Release IPA (Customer App)
         script: |
           set -eo pipefail
           export SUPABASE_URL="${SUPABASE_URL:-https://boylzidmvvldouxtrpiv.supabase.co}"
@@ -159,45 +113,23 @@ workflows:
           echo "Xcode Version: $(xcodebuild -version | head -n 1)"
           echo "Build Time: $(date)"
 
-          EXPORT_PLIST="${HOME}/export_options.plist"
-          if [ ! -f "$EXPORT_PLIST" ]; then
-            EXPORT_PLIST="/Users/builder/export_options.plist"
-          fi
-          
-          echo "== Export Options Plist Content =="
-          cat "$EXPORT_PLIST" || true
-
-          flutter build ipa --release \
+          flutter build ios --release --no-codesign \
             --target lib/main.dart \
-            --export-options-plist "$EXPORT_PLIST" \
             --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
             --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
 
-          echo "== Final Signed Artifact Verification =="
-          mkdir -p build/ios/ipa
-          if [ ! -f build/ios/ipa/*.ipa ] && [ -d build/ios/archive/Runner.xcarchive ]; then
-            echo "Exporting IPA via xcodebuild from archive..."
-            xcodebuild -exportArchive \
-              -archivePath build/ios/archive/Runner.xcarchive \
-              -exportPath build/ios/ipa \
-              -exportOptionsPlist "$EXPORT_PLIST"
-          fi
+          echo "== Packaging Unsigned IPA =="
+          mkdir -p build/ios/ipa/Payload
+          cp -R build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
+          cd build/ios/ipa
+          zip -qr ahlna_daquq_unsigned.ipa Payload
+          rm -rf Payload
 
-          ls -lah build/ios/ipa/
-          shasum -a 256 build/ios/ipa/*.ipa || true
+          echo "== Verification of Unsigned IPA =="
+          ls -lah ahlna_daquq_unsigned.ipa
+          shasum -a 256 ahlna_daquq_unsigned.ipa
     artifacts:
       - build/ios/ipa/*.ipa
-    publishing:
-      app_store_connect:
-        auth: integration
-        submit_to_testflight: true
-        submit_to_app_store: false
-      email:
-        recipients:
-          - your@email.com
-        notify:
-          success: true
-          failure: true
 
   android_release:
     name: Android APK (Release)
