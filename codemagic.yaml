@@ -52,31 +52,37 @@ workflows:
           CERT_KEY="/Users/builder/cert_key.pem"
           openssl genrsa -out "$CERT_KEY" 2048
 
-          echo "== Creating Fresh Official Apple Distribution Certificate =="
-          app-store-connect certificates create \
-            --type IOS_DISTRIBUTION \
-            --certificate-key "$CERT_KEY" \
-            --p12-password "codemagic" \
-            --p12-path "/Users/builder/dist_cert.p12" \
-            --save || echo "Create certificate returned with message"
+          echo "== Deleting outdated certificate to free up slot if at limit =="
+          app-store-connect certificates delete DLTG6D2A58 || true
 
-          echo "== Fetching or Generating App Store Provisioning Profile =="
-          app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
+          echo "== Fetching or Generating App Store Provisioning Profile and Distribution Certificate =="
+          if ! app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
             --type IOS_APP_STORE \
             --create \
-            --certificate-key "$CERT_KEY" || true
+            --delete-stale-profiles \
+            --certificate-key="@file:$CERT_KEY" \
+            --p12-password "codemagic"; then
+            echo "Retrying after cleaning additional certificate collision..."
+            app-store-connect certificates delete L4TY8GS75D || true
+            app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
+              --type IOS_APP_STORE \
+              --create \
+              --delete-stale-profiles \
+              --certificate-key="@file:$CERT_KEY" \
+              --p12-password "codemagic"
+          fi
 
           echo "== Adding Valid Certificates to Keychain =="
-          if [ -f "/Users/builder/dist_cert.p12" ]; then
-            keychain add-certificates --certificate "/Users/builder/dist_cert.p12" --certificate-password "codemagic"
-          fi
-          keychain add-certificates || true
+          keychain add-certificates --certificate-password "codemagic" || keychain add-certificates || true
 
           echo "== Verifying Installed Identities in Keychain =="
           security find-identity -v -p codesigning || true
 
           echo "== Configuring Xcode Project Profiles =="
-          xcode-project use-profiles
+          xcode-project use-profiles --export-options-plist="/Users/builder/export_options.plist"
+
+          echo "== Checking Generated Export Options =="
+          cat /Users/builder/export_options.plist || true
 
       - name: Build Official Signed Release IPA (Customer App)
         script: |
@@ -90,9 +96,9 @@ workflows:
           echo "Xcode Version: $(xcodebuild -version | head -n 1)"
           echo "Build Time: $(date)"
 
-          EXPORT_PLIST="${HOME}/export_options.plist"
+          EXPORT_PLIST="/Users/builder/export_options.plist"
           if [ ! -f "$EXPORT_PLIST" ]; then
-            EXPORT_PLIST="/Users/builder/export_options.plist"
+            EXPORT_PLIST="${HOME}/export_options.plist"
           fi
           
           echo "== Export Options Plist Content =="
@@ -167,31 +173,37 @@ workflows:
           CERT_KEY="/Users/builder/cert_key.pem"
           openssl genrsa -out "$CERT_KEY" 2048
 
-          echo "== Creating Fresh Official Apple Distribution Certificate =="
-          app-store-connect certificates create \
-            --type IOS_DISTRIBUTION \
-            --certificate-key "$CERT_KEY" \
-            --p12-password "codemagic" \
-            --p12-path "/Users/builder/dist_cert.p12" \
-            --save || echo "Create certificate returned with message"
+          echo "== Deleting outdated certificate to free up slot if at limit =="
+          app-store-connect certificates delete DLTG6D2A58 || true
 
-          echo "== Fetching or Generating App Store Provisioning Profile =="
-          app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
+          echo "== Fetching or Generating App Store Provisioning Profile and Distribution Certificate =="
+          if ! app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
             --type IOS_APP_STORE \
             --create \
-            --certificate-key "$CERT_KEY" || true
+            --delete-stale-profiles \
+            --certificate-key="@file:$CERT_KEY" \
+            --p12-password "codemagic"; then
+            echo "Retrying after cleaning additional certificate collision..."
+            app-store-connect certificates delete L4TY8GS75D || true
+            app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
+              --type IOS_APP_STORE \
+              --create \
+              --delete-stale-profiles \
+              --certificate-key="@file:$CERT_KEY" \
+              --p12-password "codemagic"
+          fi
 
           echo "== Adding Valid Certificates to Keychain =="
-          if [ -f "/Users/builder/dist_cert.p12" ]; then
-            keychain add-certificates --certificate "/Users/builder/dist_cert.p12" --certificate-password "codemagic"
-          fi
-          keychain add-certificates || true
+          keychain add-certificates --certificate-password "codemagic" || keychain add-certificates || true
 
           echo "== Verifying Installed Identities in Keychain =="
           security find-identity -v -p codesigning || true
 
           echo "== Configuring Xcode Project Profiles =="
-          xcode-project use-profiles
+          xcode-project use-profiles --export-options-plist="/Users/builder/export_options.plist"
+
+          echo "== Checking Generated Export Options =="
+          cat /Users/builder/export_options.plist || true
 
       - name: Build Official Signed Release IPA (Customer App)
         script: |
@@ -205,9 +217,9 @@ workflows:
           echo "Xcode Version: $(xcodebuild -version | head -n 1)"
           echo "Build Time: $(date)"
 
-          EXPORT_PLIST="${HOME}/export_options.plist"
+          EXPORT_PLIST="/Users/builder/export_options.plist"
           if [ ! -f "$EXPORT_PLIST" ]; then
-            EXPORT_PLIST="/Users/builder/export_options.plist"
+            EXPORT_PLIST="${HOME}/export_options.plist"
           fi
           
           echo "== Export Options Plist Content =="
