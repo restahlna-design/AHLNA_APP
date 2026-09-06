@@ -82,6 +82,32 @@ class Storage {
     await p.remove(_kProfileImage);
   }
 
+  static const _kReadNotifications = 'read_notifications_ids';
+
+  static Future<Set<int>> loadReadNotificationIds() async {
+    final p = await SharedPreferences.getInstance();
+    final list = p.getStringList(_kReadNotifications) ?? [];
+    return list.map((e) => int.tryParse(e) ?? -1).where((e) => e != -1).toSet();
+  }
+
+  static Future<void> markNotificationAsRead(int id) async {
+    final p = await SharedPreferences.getInstance();
+    final list = p.getStringList(_kReadNotifications) ?? [];
+    if (!list.contains(id.toString())) {
+      list.add(id.toString());
+      await p.setStringList(_kReadNotifications, list);
+    }
+  }
+
+  static Future<void> markAllNotificationsAsRead(List<int> ids) async {
+    final p = await SharedPreferences.getInstance();
+    final set = (p.getStringList(_kReadNotifications) ?? []).toSet();
+    for (final id in ids) {
+      set.add(id.toString());
+    }
+    await p.setStringList(_kReadNotifications, set.toList());
+  }
+
   static Future<void> setString(String key, String value) async {
     final p = await SharedPreferences.getInstance();
     await p.setString(key, value);
@@ -92,3 +118,4 @@ class Storage {
     return p.getString(key);
   }
 }
+

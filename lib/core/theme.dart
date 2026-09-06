@@ -13,6 +13,8 @@ class AppTheme {
     );
 
     return ThemeData(
+      fontFamily: 'Tajawal',
+      fontFamilyFallback: const ['Tajawal', 'sans-serif'],
       brightness: Brightness.dark,
       colorScheme: colorScheme,
       scaffoldBackgroundColor: background,

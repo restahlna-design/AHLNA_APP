@@ -11,6 +11,7 @@ import 'screens/admin_home_screen.dart';
 import 'screens/admin_menu_screen.dart';
 import 'screens/admin_records_screen.dart';
 import 'screens/admin_offers_screen.dart';
+import 'screens/admin_notifications_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -26,7 +27,7 @@ Future<void> main() async {
     print('⚠️ Hive initialization failed (likely file lock): $e');
   }
 
-  await SupabaseManager.init();
+  await SupabaseManager.init(isAdmin: true);
 
   if (Platform.isWindows) {
     await windowManager.ensureInitialized();
@@ -67,7 +68,7 @@ class AhlnaAdminApp extends StatelessWidget {
       title: 'لوحة الإدارة',
 
       theme: ThemeData(
-        fontFamily: 'AlMohanad',
+        fontFamily: 'Tajawal',
         useMaterial3: true,
         brightness: Brightness.dark,
         primaryColor: accentBronze,
@@ -134,6 +135,7 @@ class _AdminRootState extends State<AdminRoot> {
       const AdminMenuScreen(),
       const AdminRecordsScreen(),
       const AdminOffersScreen(),
+      const AdminNotificationsScreen(),
     ];
 
     final titles = [
@@ -141,6 +143,7 @@ class _AdminRootState extends State<AdminRoot> {
       'إدارة المنيو',
       'سجل الطلبات',
       'العروضات',
+      'إرسال الإشعارات',
     ];
 
     if (!isWindows) {
@@ -246,6 +249,8 @@ class _AdminRootState extends State<AdminRoot> {
                       _buildMenuItem(2, 'سجل الطلبات', Icons.history_rounded),
                       const SizedBox(height: 5),
                       _buildMenuItem(3, 'العروضات', Icons.local_offer_rounded),
+                      const SizedBox(height: 5),
+                      _buildMenuItem(4, 'إرسال الإشعارات', Icons.campaign_rounded),
                     ],
                   ),
                 ),

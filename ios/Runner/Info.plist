@@ -69,11 +69,11 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>نحتاج موقعك لتحديد عنوان التوصيل بدقة</string>
+	<string>يستخدم التطبيق موقعك الجغرافي أثناء الاستخدام لتحديد عنوان التوصيل بدقة وتوجيه المندوب لإيصال طلبك بسرعة.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
-	<string>نحتاج الوصول للصور لاختيار وحفظ الصور</string>
+	<string>نحتاج إلى الوصول لمعرض الصور لاختيار وتعيين صورة الملف الشخصي الخاصة بك.</string>
 	<key>NSCameraUsageDescription</key>
-	<string>نحتاج الوصول إلى الكاميرا لالتقاط صورة الملف الشخصي</string>
+	<string>نحتاج إلى إذن استخدام الكاميرا لالتقاط صورة وتعيينها كصورة للملف الشخصي.</string>
 	<key>LSApplicationQueriesSchemes</key>
 	<array>
 		<string>comgooglemaps</string>

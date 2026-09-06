@@ -5,7 +5,7 @@ import 'screens/admin_home_screen.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await SupabaseManager.init();
+  await SupabaseManager.init(isAdmin: true);
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
@@ -22,6 +22,8 @@ class _AdminAndroidApp extends StatelessWidget {
         surface: Color(0xFF121212),
       ),
       scaffoldBackgroundColor: const Color(0xFF0E0E0E),
+      fontFamily: 'Tajawal',
+      fontFamilyFallback: const ['Tajawal', 'sans-serif'],
       useMaterial3: true,
     );
     return MaterialApp(

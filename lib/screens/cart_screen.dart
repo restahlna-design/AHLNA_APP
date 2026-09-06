@@ -558,46 +558,38 @@ class _CartScreenState extends State<CartScreen> {
 
                                   if (type == null) return;
 
-                                  setState(() => _isLoading = true);
-                                  try {
-                                    final repo = OrderRepository();
-                                    final items = cart.items
-                                        .map(
-                                          (ci) => OrderItem(
-                                            item: ci.item,
-                                            quantity: ci.quantity,
-                                          ),
-                                        )
-                                        .toList();
-                                    final name = profile.name.isNotEmpty
-                                        ? profile.name
-                                        : 'زبون';
-                                    final phone = profile.phone.isNotEmpty
-                                        ? profile.phone
-                                        : '0770';
-                                    final address = profile.address.isNotEmpty
-                                        ? profile.address
-                                        : 'بدون';
-                                    String? orderId;
+                                  double? lat;
+                                  double? long;
 
-                                      double? lat;
-                                      double? long;
+                                  // ----------------------------------------------------
+                                  // 💎 معالجة طلب الدليفري وطلب إذن الموقع الجغرافي الفاخر 💎
+                                  // ----------------------------------------------------
+                                  if (type == 'delivery') {
+                                    final consent = await _showLuxuryLocationConsentDialog(context);
+                                    if (consent == null) {
+                                      // المستخدم ألغى النافذة، نوقف عملية الطلب
+                                      return;
+                                    }
 
-                                      // 1. Check if location service (GPS hardware) is enabled on the device
+                                    if (consent == true) {
+                                      // المستخدم وافق على تحديد الموقع تلقائياً
+                                      setState(() => _isLoading = true);
+
+                                      // 1. التحقق من تشغيل خدمة الموقع (GPS Hardware)
                                       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
                                       if (!serviceEnabled) {
                                         if (mounted) {
                                           setState(() => _isLoading = false);
                                           _showToastNotification(
                                             context,
-                                            'الرجاء تشغيل خدمة الموقع (GPS) في هاتفك أولاً',
+                                            'يرجى تشغيل خدمة الموقع (GPS) في هاتفك أو المتابعة بالعنوان المكتوب',
                                             isError: true,
                                           );
                                         }
                                         return;
                                       }
 
-                                      // 2. Check and request location permission
+                                      // 2. التحقق من إذن الموقع وطلبه رسمياً
                                       var permission = await Geolocator.checkPermission();
                                       if (permission == LocationPermission.denied) {
                                         permission = await Geolocator.requestPermission();
@@ -619,14 +611,14 @@ class _CartScreenState extends State<CartScreen> {
                                           setState(() => _isLoading = false);
                                           _showToastNotification(
                                             context,
-                                            'يجب السماح بالوصول للموقع لإتمام إرسال الطلب',
+                                            'تم رفض إذن الموقع، يمكنك المتابعة بالعنوان المكتوب',
                                             isError: true,
                                           );
                                         }
                                         return;
                                       }
 
-                                      // 3. Try to get last known position first (fast instant fallback)
+                                      // 3. محاولة جلب آخر موقع مسجل أولاً
                                       try {
                                         final lastPos = await Geolocator.getLastKnownPosition();
                                         if (lastPos != null) {
@@ -635,7 +627,7 @@ class _CartScreenState extends State<CartScreen> {
                                         }
                                       } catch (_) {}
 
-                                      // 4. Try fetching fresh accurate current position
+                                      // 4. جلب الموقع الدقيق الحالي
                                       try {
                                         final pos = await Geolocator.getCurrentPosition(
                                           desiredAccuracy: LocationAccuracy.high,
@@ -644,7 +636,6 @@ class _CartScreenState extends State<CartScreen> {
                                         lat = pos.latitude;
                                         long = pos.longitude;
                                       } catch (_) {
-                                        // If high accuracy timed out or failed, try medium accuracy if we don't have lat yet
                                         if (lat == null || long == null) {
                                           try {
                                             final pos2 = await Geolocator.getCurrentPosition(
@@ -656,19 +647,35 @@ class _CartScreenState extends State<CartScreen> {
                                           } catch (_) {}
                                         }
                                       }
+                                    } else {
+                                      // اختار المتابعة بالعنوان المكتوب فقط (متوافق 100% مع أبل)
+                                      setState(() => _isLoading = true);
+                                    }
+                                  } else {
+                                    // سفري أو صالة: لا يتطلب موقع جغرافي نهائياً
+                                    setState(() => _isLoading = true);
+                                  }
 
-                                      // 5. Hard enforcement: if GPS is still null, block order
-                                      if (lat == null || long == null) {
-                                        if (mounted) {
-                                          setState(() => _isLoading = false);
-                                          _showToastNotification(
-                                            context,
-                                            'تعذر التقاط إشارة GPS. تأكد من تفعيل الموقع وحاول مجدداً',
-                                            isError: true,
-                                          );
-                                        }
-                                        return;
-                                      }
+                                  try {
+                                    final repo = OrderRepository();
+                                    final items = cart.items
+                                        .map(
+                                          (ci) => OrderItem(
+                                            item: ci.item,
+                                            quantity: ci.quantity,
+                                          ),
+                                        )
+                                        .toList();
+                                    final name = profile.name.isNotEmpty
+                                        ? profile.name
+                                        : 'زبون';
+                                    final phone = profile.phone.isNotEmpty
+                                        ? profile.phone
+                                        : '0770';
+                                    final address = profile.address.isNotEmpty
+                                        ? profile.address
+                                        : 'بدون';
+                                    String? orderId;
 
                                       Order? targetOrder = widget.editingOrder ?? cart.editingOrder;
 
@@ -779,6 +786,268 @@ class _CartScreenState extends State<CartScreen> {
 ),
 );
 }
+
+  // 💎 نافذة موافقة الموقع الجغرافي الفاخرة (Luxury Location Consent Sheet) 💎
+  Future<bool?> _showLuxuryLocationConsentDialog(BuildContext context) async {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+
+    return await showModalBottomSheet<bool>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) {
+        return Container(
+          padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+          decoration: BoxDecoration(
+            color: theme.scaffoldBackgroundColor,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.35),
+                blurRadius: 30,
+                offset: const Offset(0, -6),
+              ),
+            ],
+            border: Border(
+              top: BorderSide(
+                color: cs.primary.withValues(alpha: 0.3),
+                width: 1.5,
+              ),
+            ),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // مقبض السحب العلوي الأنيق
+              Center(
+                child: Container(
+                  width: 44,
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: cs.onSurface.withValues(alpha: 0.2),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // الأيقونة الفاخرة مع هالة ضوئية دائرية
+              Stack(
+                alignment: Alignment.center,
+                children: [
+                  Container(
+                    width: 88,
+                    height: 88,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      gradient: RadialGradient(
+                        colors: [
+                          cs.primary.withValues(alpha: 0.25),
+                          cs.primary.withValues(alpha: 0.0),
+                        ],
+                      ),
+                    ),
+                  ),
+                  Container(
+                    width: 66,
+                    height: 66,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [
+                          cs.primary,
+                          cs.primary.withValues(alpha: 0.8),
+                        ],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: cs.primary.withValues(alpha: 0.4),
+                          blurRadius: 18,
+                          offset: const Offset(0, 6),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.location_on_rounded,
+                      size: 34,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 18),
+
+              // العنوان الفخم بخط Tajawal
+              Text(
+                'تحديد موقع التوصيل بدقة',
+                textAlign: TextAlign.center,
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w900,
+                  fontSize: 21,
+                  fontFamily: 'Tajawal',
+                  letterSpacing: -0.3,
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // النص التوضيحي المعتمد لدى مراجعي أبل
+              Text(
+                'لتوصيل وجبتك ساخنة وبأسرع وقت إلى مكانك، نحتاج إلى إذن تحديد موقعك الجغرافي لتوجيه مندوب التوصيل مباشرة.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 14.5,
+                  height: 1.55,
+                  color: cs.onSurface.withValues(alpha: 0.75),
+                  fontFamily: 'Tajawal',
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // بطاقة المزايا الزجاجية الراقية
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                decoration: BoxDecoration(
+                  color: cs.primary.withValues(alpha: 0.06),
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(
+                    color: cs.primary.withValues(alpha: 0.15),
+                  ),
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: cs.primary.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(Icons.navigation_rounded, size: 16, color: cs.primary),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'توجيه المندوب فوراً دون الحاجة للاتصال المتكرر للاستدلال',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
+                              fontFamily: 'Tajawal',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 8),
+                      child: Divider(height: 1, thickness: 0.5),
+                    ),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.green.withValues(alpha: 0.15),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(Icons.shield_outlined, size: 16, color: Colors.green),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Text(
+                            'خصوصيتك محفوظة بالكامل؛ يُستخدم الموقع لمرة واحدة لهذا الطلب فقط',
+                            style: TextStyle(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w600,
+                              color: cs.onSurface,
+                              fontFamily: 'Tajawal',
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+
+              // زر الموافقة الرئيسي الفخم
+              SizedBox(
+                width: double.infinity,
+                height: 52,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: cs.primary,
+                    foregroundColor: Colors.white,
+                    elevation: 6,
+                    shadowColor: cs.primary.withValues(alpha: 0.4),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(ctx, true),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(Icons.my_location_rounded, size: 20, color: Colors.white),
+                      SizedBox(width: 10),
+                      Text(
+                        'موافق، تحديد موقعي تلقائياً (GPS)',
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          fontFamily: 'Tajawal',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // زر المتابعة بالعنوان المكتوب (ميزة تفضيلية تمنع رفض أبل)
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: cs.onSurface.withValues(alpha: 0.8),
+                    side: BorderSide(
+                      color: cs.outline.withValues(alpha: 0.25),
+                      width: 1.2,
+                    ),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                  ),
+                  onPressed: () => Navigator.pop(ctx, false),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.home_outlined, size: 18, color: cs.onSurface.withValues(alpha: 0.7)),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'المتابعة بالعنوان المكتوب فقط',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          fontFamily: 'Tajawal',
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   // 🔥 ودجت البطاقة الفاخرة (Premium Card) 🔥
   Widget _buildPremiumCard(

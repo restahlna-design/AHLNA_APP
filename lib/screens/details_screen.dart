@@ -49,7 +49,7 @@ class _DetailsScreenState extends State<DetailsScreen>
     }
 
     return Scaffold(
-      appBar: AppBar(title: const Text('تفاصيل الطبق')),
+      appBar: AppBar(backgroundColor: Colors.transparent, elevation: 0),
       body: SafeArea(
         child: SingleChildScrollView(
           child: Column(

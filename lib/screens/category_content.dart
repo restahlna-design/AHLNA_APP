@@ -84,13 +84,15 @@ class _CategoryContentState extends State<CategoryContent>
   @override
   void didUpdateWidget(CategoryContent oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (widget.initialItems != oldWidget.initialItems || oldWidget.category != widget.category) {
+    if (widget.initialItems != oldWidget.initialItems ||
+        oldWidget.category != widget.category) {
       setState(() {
         _items = widget.initialItems;
         _loaded = true;
       });
     }
-    if (oldWidget.stream != widget.stream || oldWidget.category != widget.category) {
+    if (oldWidget.stream != widget.stream ||
+        oldWidget.category != widget.category) {
       _subscribeStream(widget.stream);
     }
   }
@@ -178,7 +180,9 @@ class _CategoryContentState extends State<CategoryContent>
                 item.name,
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
-                  color: disabled ? Colors.grey : theme.textTheme.bodyLarge?.color,
+                  color: disabled
+                      ? Colors.grey
+                      : theme.textTheme.bodyLarge?.color,
                 ),
               ),
               subtitle: Text(
@@ -202,7 +206,12 @@ class _CategoryContentState extends State<CategoryContent>
                   : null,
               onTap: () {
                 if (disabled) {
-                  showModernSnackBar(context, 'تم نفاذ الكمية ⚠️', color: Colors.grey, icon: Icons.warning_amber_rounded);
+                  showModernSnackBar(
+                    context,
+                    'تم نفاذ الكمية ⚠️',
+                    color: Colors.grey,
+                    icon: Icons.warning_amber_rounded,
+                  );
                   return;
                 }
                 Navigator.push(
@@ -263,13 +272,19 @@ class _CategoryContentState extends State<CategoryContent>
                                 child: Hero(
                                   tag: item.id,
                                   child: Container(
-                                    width: MediaQuery.of(context).size.width * 0.62,
-                                    height: MediaQuery.of(context).size.width * 0.62,
+                                    width:
+                                        MediaQuery.of(context).size.width *
+                                        0.62,
+                                    height:
+                                        MediaQuery.of(context).size.width *
+                                        0.62,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       boxShadow: [
                                         BoxShadow(
-                                          color: Colors.black.withValues(alpha: 0.15),
+                                          color: Colors.black.withValues(
+                                            alpha: 0.15,
+                                          ),
                                           blurRadius: 20,
                                           offset: const Offset(0, 10),
                                         ),
@@ -279,9 +294,10 @@ class _CategoryContentState extends State<CategoryContent>
                                     child: CachedNetworkImage(
                                       imageUrl: item.imageUrl,
                                       fit: BoxFit.cover,
-                                      placeholder: (context, url) => const Center(
-                                        child: CircularProgressIndicator(),
-                                      ),
+                                      placeholder: (context, url) =>
+                                          const Center(
+                                            child: CircularProgressIndicator(),
+                                          ),
                                       errorWidget: (context, url, error) =>
                                           Container(
                                             color: Colors.grey[200],
@@ -373,8 +389,14 @@ class _CategoryContentState extends State<CategoryContent>
                   textAlign: TextAlign.center,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: Colors.grey[600],
+                  style: TextStyle(
+                    fontFamily: 'Tajawal',
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                    color: (theme.brightness == Brightness.dark)
+                        ? const Color(0xFFE2E8F0)
+                        : const Color(0xFF334155),
                   ),
                 ),
                 const SizedBox(height: 6),

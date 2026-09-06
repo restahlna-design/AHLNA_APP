@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+import 'dart:math' as math;
 import 'dart:io';
 import 'dart:async';
 import 'package:flutter/foundation.dart';
@@ -547,53 +549,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         backgroundColor: theme.scaffoldBackgroundColor,
         elevation: 0,
         centerTitle: true,
-        title: Container(
-          height: 45,
-          margin: const EdgeInsets.symmetric(horizontal: 8),
-          decoration: BoxDecoration(
-            color: theme.inputDecorationTheme.fillColor ?? Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: TextField(
-            controller: _searchController,
-            onChanged: (val) => _search.value = val,
-            style: TextStyle(color: theme.textTheme.bodyLarge?.color),
-            decoration: InputDecoration(
-              hintText: 'ابحث عن وجبتك المفضلة...',
-              hintStyle: TextStyle(color: Colors.grey.shade400, fontSize: 14),
-              prefixIcon: Icon(Icons.search, color: theme.primaryColor),
-              suffixIcon: ValueListenableBuilder<String>(
-                valueListenable: _search,
-                builder: (context, val, _) {
-                  if (val.isEmpty) return const SizedBox();
-                  return IconButton(
-                    icon: const Icon(Icons.close, color: Colors.grey),
-                    onPressed: () {
-                      _searchController.clear();
-                      _search.value = '';
-                    },
-                  );
-                },
-              ),
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide.none,
-              ),
-              filled: true,
-              fillColor: theme.inputDecorationTheme.fillColor ?? Colors.white,
-              enabledBorder: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(12),
-                borderSide: BorderSide(color: Colors.grey.shade200),
-              ),
-            ),
-          ),
+        title: _RotatingMetallicSearchBar(
+          controller: _searchController,
+          searchNotifier: _search,
         ),
 
         // --- أيقونة السلة والجرس ---
@@ -608,7 +566,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               children: [
                 IconButton(
                   icon: Icon(
-                    Icons.notifications_none_rounded,
+                    Icons.edit_rounded,
                     color: _activeOrders.isNotEmpty ? Colors.orange : theme.iconTheme.color,
                     size: 28,
                   ),
@@ -716,115 +674,44 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildTopNavBar(BuildContext context) {
     final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
     return Container(
-      height: 56,
-      padding: const EdgeInsets.symmetric(horizontal: 8),
+      height: 58,
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
       decoration: BoxDecoration(
         color: theme.scaffoldBackgroundColor,
-        border: Border(bottom: BorderSide(color: Colors.grey.shade300)),
       ),
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
+        physics: const BouncingScrollPhysics(),
         child: Row(
           children: _parentCategories.map((p) {
             final isActive = _selectedParent?.id == p.id;
             final children = _allCategories
                 .where((c) => c.parentId == p.id)
                 .toList();
-            if (children.isNotEmpty) {
-              return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-                child: PopupMenuButton<CategoryModel>(
-                  tooltip: p.nameAr,
-                  onSelected: (c) {
-                    setState(() {
-                      _selectedParent = p;
-                      _selectedChildForParent[p.id] = c;
-                    });
-                  },
-                  itemBuilder: (context) => children
-                      .map(
-                        (c) => PopupMenuItem<CategoryModel>(
-                          value: c,
-                          child: Text(c.nameAr),
-                        ),
-                      )
-                      .toList(),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 8,
-                    ),
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? theme.primaryColor.withValues(alpha: 0.12)
-                          : theme.cardColor,
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                        color: isActive
-                            ? theme.primaryColor
-                            : Colors.grey.shade300,
-                      ),
-                    ),
-                    child: Row(
-                      children: [
-                        Text(
-                          p.nameAr,
-                          style: TextStyle(
-                            color: isActive
-                                ? theme.primaryColor
-                                : theme.textTheme.bodyLarge?.color,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                        const SizedBox(width: 6),
-                        Icon(
-                          Icons.expand_more,
-                          size: 18,
-                          color: isActive ? theme.primaryColor : Colors.grey,
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              );
-            }
+
             return Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
-              child: InkWell(
+              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+              child: _CategoryPillTab(
+                category: p,
+                isActive: isActive,
+                hasChildren: children.isNotEmpty,
+                isDark: isDark,
                 onTap: () {
                   setState(() {
                     _selectedParent = p;
                     _selectedChildForParent.remove(p.id);
                   });
                 },
-                borderRadius: BorderRadius.circular(20),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 8,
-                  ),
-                  decoration: BoxDecoration(
-                    color: isActive
-                        ? theme.primaryColor.withValues(alpha: 0.12)
-                        : theme.cardColor,
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: isActive
-                          ? theme.primaryColor
-                          : Colors.grey.shade300,
-                    ),
-                  ),
-                  child: Text(
-                    p.nameAr,
-                    style: TextStyle(
-                      color: isActive
-                          ? theme.primaryColor
-                          : theme.textTheme.bodyLarge?.color,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
+                children: children,
+                onChildSelected: (c) {
+                  setState(() {
+                    _selectedParent = p;
+                    _selectedChildForParent[p.id] = c;
+                  });
+                },
               ),
             );
           }).toList(),
@@ -1822,6 +1709,420 @@ class _CategoryPageState extends State<_CategoryPage>
           ],
         ),
       ),
+    );
+  }
+}
+
+
+class _RotatingMetallicSearchBar extends StatefulWidget {
+  final TextEditingController controller;
+  final ValueNotifier<String> searchNotifier;
+
+  const _RotatingMetallicSearchBar({
+    required this.controller,
+    required this.searchNotifier,
+  });
+
+  @override
+  State<_RotatingMetallicSearchBar> createState() => _RotatingMetallicSearchBarState();
+}
+
+class _RotatingMetallicSearchBarState extends State<_RotatingMetallicSearchBar>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _rotationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final isDark = theme.brightness == Brightness.dark;
+
+    final innerBg = isDark
+        ? const Color(0xFF13171F).withValues(alpha: 0.90)
+        : Colors.white.withValues(alpha: 0.94);
+
+    return AnimatedBuilder(
+      animation: _rotationController,
+      builder: (context, _) {
+        return Container(
+          height: 48,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(999),
+            boxShadow: [
+              BoxShadow(
+                color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.30 : 0.18),
+                blurRadius: 16,
+                spreadRadius: 1,
+                offset: const Offset(0, 3),
+              ),
+              BoxShadow(
+                color: isDark
+                    ? const Color(0xFFCBD5E1).withValues(alpha: 0.10)
+                    : Colors.black.withValues(alpha: 0.05),
+                blurRadius: 8,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(999),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                // 1. Rotating Metallic Conic Gradient
+                Positioned.fill(
+                  child: CustomPaint(
+                    painter: _SearchMetallicRotatingPainter(
+                      progress: _rotationController.value,
+                      isDark: isDark,
+                    ),
+                  ),
+                ),
+
+                // 2. Inner Capsule with 2.2px padding to reveal the rotating metallic border
+                Padding(
+                  padding: const EdgeInsets.all(2.2),
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(999),
+                    child: BackdropFilter(
+                      filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: innerBg,
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Center(
+                          child: TextField(
+                            controller: widget.controller,
+                            onChanged: (val) => widget.searchNotifier.value = val,
+                            style: TextStyle(
+                              fontFamily: 'Tajawal',
+                              fontSize: 14,
+                              color: theme.textTheme.bodyLarge?.color,
+                            ),
+                            textAlignVertical: TextAlignVertical.center,
+                            decoration: InputDecoration(
+                              isDense: true,
+                              contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                              hintText: 'ابحث عن وجبتك المفضلة...',
+                              hintStyle: TextStyle(
+                                fontFamily: 'Tajawal',
+                                color: isDark ? Colors.grey.shade400 : Colors.grey.shade500,
+                                fontSize: 13,
+                              ),
+                              prefixIcon: const Icon(
+                                Icons.search_rounded,
+                                color: Color(0xFF10B981),
+                                size: 22,
+                              ),
+                              suffixIcon: ValueListenableBuilder<String>(
+                                valueListenable: widget.searchNotifier,
+                                builder: (context, val, _) {
+                                  if (val.isEmpty) return const SizedBox();
+                                  return IconButton(
+                                    icon: const Icon(Icons.close_rounded, size: 18, color: Colors.grey),
+                                    onPressed: () {
+                                      widget.controller.clear();
+                                      widget.searchNotifier.value = '';
+                                    },
+                                  );
+                                },
+                              ),
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _SearchMetallicRotatingPainter extends CustomPainter {
+  final double progress;
+  final bool isDark;
+
+  _SearchMetallicRotatingPainter({
+    required this.progress,
+    required this.isDark,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (size.width == 0 || size.height == 0) return;
+
+    final rect = Offset.zero & size;
+
+    final colors = isDark
+        ? [
+            const Color(0xFFCBD5E1), // Steel silver
+            const Color(0xFFFFFFFF), // Brilliant chrome reflection
+            const Color(0xFF94A3B8), // Metallic slate
+            const Color(0xFF10B981), // Emerald green identity
+            const Color(0xFF34D399), // Emerald light sheen
+            const Color(0xFF059669), // Emerald deep shade
+            const Color(0xFF64748B), // Steel dark tone
+            const Color(0xFFFFFFFF), // Specular chrome highlight
+            const Color(0xFFCBD5E1), // Back to steel silver for seamless loop
+          ]
+        : [
+            const Color(0xFF94A3B8), // Steel slate
+            const Color(0xFFFFFFFF), // Chrome white highlight
+            const Color(0xFFCBD5E1), // Platinum
+            const Color(0xFF10B981), // Emerald green identity
+            const Color(0xFF059669), // Rich emerald
+            const Color(0xFFCBD5E1), // Steel silver
+            const Color(0xFFFFFFFF), // Brilliant chrome specular reflection
+            const Color(0xFF94A3B8), // Loop closure
+          ];
+
+    final stops = isDark
+        ? [0.0, 0.12, 0.25, 0.42, 0.52, 0.64, 0.76, 0.88, 1.0]
+        : [0.0, 0.14, 0.28, 0.45, 0.58, 0.72, 0.86, 1.0];
+
+    final paint = Paint()
+      ..shader = SweepGradient(
+        center: Alignment.center,
+        colors: colors,
+        stops: stops,
+        transform: GradientRotation(progress * 2 * math.pi),
+      ).createShader(rect);
+
+    canvas.drawRect(rect, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SearchMetallicRotatingPainter oldDelegate) {
+    return oldDelegate.progress != progress || oldDelegate.isDark != isDark;
+  }
+}
+
+
+class _CategoryPillTab extends StatefulWidget {
+  final CategoryModel category;
+  final bool isActive;
+  final bool hasChildren;
+  final bool isDark;
+  final VoidCallback onTap;
+  final List<CategoryModel> children;
+  final ValueChanged<CategoryModel>? onChildSelected;
+
+  const _CategoryPillTab({
+    required this.category,
+    required this.isActive,
+    required this.hasChildren,
+    required this.isDark,
+    required this.onTap,
+    required this.children,
+    this.onChildSelected,
+  });
+
+  @override
+  State<_CategoryPillTab> createState() => _CategoryPillTabState();
+}
+
+class _CategoryPillTabState extends State<_CategoryPillTab>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _rotationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  Widget _buildContent() {
+    const activeColor = Color(0xFF10B981);
+    final textColor = widget.isActive
+        ? (widget.isDark ? Colors.white : const Color(0xFF0F172A))
+        : (widget.isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B));
+
+    final iconColor = widget.isActive ? activeColor : (widget.isDark ? const Color(0xFF94A3B8) : Colors.grey);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          widget.category.nameAr,
+          style: TextStyle(
+            fontFamily: 'Tajawal',
+            fontSize: 14,
+            fontWeight: widget.isActive ? FontWeight.bold : FontWeight.w500,
+            color: textColor,
+          ),
+        ),
+        if (widget.hasChildren) ...[
+          const SizedBox(width: 4),
+          Icon(
+            Icons.keyboard_arrow_down_rounded,
+            size: 18,
+            color: iconColor,
+          ),
+        ],
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.isActive) {
+      // Active state: Rotating Metallic Glow Border (identical to the bottom bar and search bar)
+      final innerBg = widget.isDark
+          ? const Color(0xFF13171F).withValues(alpha: 0.90)
+          : Colors.white.withValues(alpha: 0.94);
+
+      Widget pillWidget = AnimatedBuilder(
+        animation: _rotationController,
+        builder: (context, _) {
+          return Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(999),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF10B981).withValues(alpha: widget.isDark ? 0.35 : 0.20),
+                  blurRadius: 12,
+                  spreadRadius: 1,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(999),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Positioned.fill(
+                    child: CustomPaint(
+                      painter: _SearchMetallicRotatingPainter(
+                        progress: _rotationController.value,
+                        isDark: widget.isDark,
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(2.2),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: BackdropFilter(
+                        filter: ui.ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                          decoration: BoxDecoration(
+                            color: innerBg,
+                            borderRadius: BorderRadius.circular(999),
+                          ),
+                          child: _buildContent(),
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+
+      if (widget.hasChildren) {
+        return PopupMenuButton<CategoryModel>(
+          tooltip: widget.category.nameAr,
+          onSelected: widget.onChildSelected,
+          itemBuilder: (context) => widget.children
+              .map(
+                (c) => PopupMenuItem<CategoryModel>(
+                  value: c,
+                  child: Text(
+                    c.nameAr,
+                    style: const TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600),
+                  ),
+                ),
+              )
+              .toList(),
+          child: pillWidget,
+        );
+      }
+
+      return GestureDetector(
+        onTap: widget.onTap,
+        behavior: HitTestBehavior.opaque,
+        child: pillWidget,
+      );
+    }
+
+    // Inactive state: clean translucent frosted pill
+    final inactiveBg = widget.isDark
+        ? Colors.white.withValues(alpha: 0.06)
+        : Colors.white;
+    final borderColor = widget.isDark
+        ? Colors.white.withValues(alpha: 0.10)
+        : Colors.black.withValues(alpha: 0.06);
+
+    Widget inactivePill = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
+      decoration: BoxDecoration(
+        color: inactiveBg,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: borderColor, width: 1.2),
+      ),
+      child: _buildContent(),
+    );
+
+    if (widget.hasChildren) {
+      return PopupMenuButton<CategoryModel>(
+        tooltip: widget.category.nameAr,
+        onSelected: widget.onChildSelected,
+        itemBuilder: (context) => widget.children
+            .map(
+              (c) => PopupMenuItem<CategoryModel>(
+                value: c,
+                child: Text(
+                  c.nameAr,
+                  style: const TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.w600),
+                ),
+              ),
+            )
+            .toList(),
+        child: inactivePill,
+      );
+    }
+
+    return GestureDetector(
+      onTap: widget.onTap,
+      behavior: HitTestBehavior.opaque,
+      child: inactivePill,
     );
   }
 }
