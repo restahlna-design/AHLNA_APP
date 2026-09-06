@@ -1,15 +1,19 @@
 workflows:
   ios-app-store-release:
-    name: iOS Release IPA (Unsigned)
+    name: iOS App Store Connect Official Release
     max_build_duration: 120
+    integrations:
+      app_store_connect: Ahlna Key
     environment:
       flutter: stable
       xcode: latest
       groups:
         - supabase
+        - app_store_credentials
       vars:
         FLUTTER_VERSION: "3.24.5"
         CM_NETWORK_TIMEOUT: 600
+        APP_STORE_APPLE_ID: 6804920766
     triggering:
       events:
         - push
@@ -25,7 +29,7 @@ workflows:
           export CURL_CONNECT_TIMEOUT=30
           export FLUTTER_STORAGE_BASE_URL=https://storage.googleapis.com
 
-      - name: Flutter clean & Dependencies
+      - name: Clean previous artifacts and dependencies
         script: |
           echo "== Clean previous build artifacts =="
           flutter clean
@@ -35,7 +39,46 @@ workflows:
           pod install --repo-update || pod install
           cd ..
 
-      - name: Build Unsigned Release IPA (Customer App)
+      - name: Create or Fetch Official Apple Distribution Certificate via Ahlna Key
+        script: |
+          set -e
+          echo "== Initializing clean keychain =="
+          keychain initialize
+
+          echo "== Existing Apple Certificates on Developer Account =="
+          app-store-connect certificates list || true
+
+          echo "== Generating 2048-bit RSA Private Key =="
+          CERT_KEY="/Users/builder/cert_key.pem"
+          openssl genrsa -out "$CERT_KEY" 2048
+
+          echo "== Creating Fresh Official Apple Distribution Certificate =="
+          app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --certificate-key "$CERT_KEY" \
+            --p12-password "codemagic" \
+            --p12-path "/Users/builder/dist_cert.p12" \
+            --save || echo "Create certificate returned with message"
+
+          echo "== Fetching or Generating App Store Provisioning Profile =="
+          app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
+            --type IOS_APP_STORE \
+            --create \
+            --certificate-key "$CERT_KEY" || true
+
+          echo "== Adding Valid Certificates to Keychain =="
+          if [ -f "/Users/builder/dist_cert.p12" ]; then
+            keychain add-certificates --certificate "/Users/builder/dist_cert.p12" --certificate-password "codemagic"
+          fi
+          keychain add-certificates || true
+
+          echo "== Verifying Installed Identities in Keychain =="
+          security find-identity -v -p codesigning || true
+
+          echo "== Configuring Xcode Project Profiles =="
+          xcode-project use-profiles
+
+      - name: Build Official Signed Release IPA (Customer App)
         script: |
           set -eo pipefail
           export SUPABASE_URL="${SUPABASE_URL:-https://boylzidmvvldouxtrpiv.supabase.co}"
@@ -47,35 +90,45 @@ workflows:
           echo "Xcode Version: $(xcodebuild -version | head -n 1)"
           echo "Build Time: $(date)"
 
-          flutter build ios --release --no-codesign \
+          EXPORT_PLIST="${HOME}/export_options.plist"
+          if [ ! -f "$EXPORT_PLIST" ]; then
+            EXPORT_PLIST="/Users/builder/export_options.plist"
+          fi
+          
+          echo "== Export Options Plist Content =="
+          cat "$EXPORT_PLIST" || true
+
+          flutter build ipa --release \
             --target lib/main.dart \
+            --export-options-plist "$EXPORT_PLIST" \
             --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
             --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
 
-          echo "== Packaging Unsigned IPA =="
-          mkdir -p build/ios/ipa/Payload
-          cp -R build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
-          cd build/ios/ipa
-          zip -qr ahlna_daquq_unsigned.ipa Payload
-          rm -rf Payload
-
-          echo "== Verification of Unsigned IPA =="
-          ls -lah ahlna_daquq_unsigned.ipa
-          shasum -a 256 ahlna_daquq_unsigned.ipa
+          echo "== Final Artifact Verification =="
+          ls -lah build/ios/ipa/*.ipa || true
     artifacts:
       - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
 
   ios_app_store_release:
-    name: iOS Release IPA (Unsigned Legacy Alias)
+    name: iOS App Store Connect Official Release (Legacy Alias)
     max_build_duration: 120
+    integrations:
+      app_store_connect: Ahlna Key
     environment:
       flutter: stable
       xcode: latest
       groups:
         - supabase
+        - app_store_credentials
       vars:
         FLUTTER_VERSION: "3.24.5"
         CM_NETWORK_TIMEOUT: 600
+        APP_STORE_APPLE_ID: 6804920766
     triggering:
       events:
         - push
@@ -91,7 +144,7 @@ workflows:
           export CURL_CONNECT_TIMEOUT=30
           export FLUTTER_STORAGE_BASE_URL=https://storage.googleapis.com
 
-      - name: Flutter clean & Dependencies
+      - name: Clean previous artifacts and dependencies
         script: |
           echo "== Clean previous build artifacts =="
           flutter clean
@@ -101,7 +154,46 @@ workflows:
           pod install --repo-update || pod install
           cd ..
 
-      - name: Build Unsigned Release IPA (Customer App)
+      - name: Create or Fetch Official Apple Distribution Certificate via Ahlna Key
+        script: |
+          set -e
+          echo "== Initializing clean keychain =="
+          keychain initialize
+
+          echo "== Existing Apple Certificates on Developer Account =="
+          app-store-connect certificates list || true
+
+          echo "== Generating 2048-bit RSA Private Key =="
+          CERT_KEY="/Users/builder/cert_key.pem"
+          openssl genrsa -out "$CERT_KEY" 2048
+
+          echo "== Creating Fresh Official Apple Distribution Certificate =="
+          app-store-connect certificates create \
+            --type IOS_DISTRIBUTION \
+            --certificate-key "$CERT_KEY" \
+            --p12-password "codemagic" \
+            --p12-path "/Users/builder/dist_cert.p12" \
+            --save || echo "Create certificate returned with message"
+
+          echo "== Fetching or Generating App Store Provisioning Profile =="
+          app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
+            --type IOS_APP_STORE \
+            --create \
+            --certificate-key "$CERT_KEY" || true
+
+          echo "== Adding Valid Certificates to Keychain =="
+          if [ -f "/Users/builder/dist_cert.p12" ]; then
+            keychain add-certificates --certificate "/Users/builder/dist_cert.p12" --certificate-password "codemagic"
+          fi
+          keychain add-certificates || true
+
+          echo "== Verifying Installed Identities in Keychain =="
+          security find-identity -v -p codesigning || true
+
+          echo "== Configuring Xcode Project Profiles =="
+          xcode-project use-profiles
+
+      - name: Build Official Signed Release IPA (Customer App)
         script: |
           set -eo pipefail
           export SUPABASE_URL="${SUPABASE_URL:-https://boylzidmvvldouxtrpiv.supabase.co}"
@@ -113,23 +205,29 @@ workflows:
           echo "Xcode Version: $(xcodebuild -version | head -n 1)"
           echo "Build Time: $(date)"
 
-          flutter build ios --release --no-codesign \
+          EXPORT_PLIST="${HOME}/export_options.plist"
+          if [ ! -f "$EXPORT_PLIST" ]; then
+            EXPORT_PLIST="/Users/builder/export_options.plist"
+          fi
+          
+          echo "== Export Options Plist Content =="
+          cat "$EXPORT_PLIST" || true
+
+          flutter build ipa --release \
             --target lib/main.dart \
+            --export-options-plist "$EXPORT_PLIST" \
             --dart-define=SUPABASE_URL="${SUPABASE_URL}" \
             --dart-define=SUPABASE_ANON_KEY="${SUPABASE_ANON_KEY}"
 
-          echo "== Packaging Unsigned IPA =="
-          mkdir -p build/ios/ipa/Payload
-          cp -R build/ios/iphoneos/Runner.app build/ios/ipa/Payload/
-          cd build/ios/ipa
-          zip -qr ahlna_daquq_unsigned.ipa Payload
-          rm -rf Payload
-
-          echo "== Verification of Unsigned IPA =="
-          ls -lah ahlna_daquq_unsigned.ipa
-          shasum -a 256 ahlna_daquq_unsigned.ipa
+          echo "== Final Artifact Verification =="
+          ls -lah build/ios/ipa/*.ipa || true
     artifacts:
       - build/ios/ipa/*.ipa
+    publishing:
+      app_store_connect:
+        auth: integration
+        submit_to_testflight: true
+        submit_to_app_store: false
 
   android_release:
     name: Android APK (Release)
