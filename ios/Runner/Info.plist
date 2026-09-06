@@ -69,7 +69,11 @@
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
 	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>يستخدم التطبيق موقعك الجغرافي أثناء الاستخدام لتحديد عنوان التوصيل بدقة وتوجيه المندوب لإيصال طلبك بسرعة.</string>
+	<string>نحتاج إلى معرفة موقعك لتحديد عنوان التوصيل بدقة على الخريطة وضمان وصول طلباتك بأسرع وقت. / We need access to your location to accurately pinpoint your delivery address on the map.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>يُستخدم لتحديد ومتابعة موقع استلام الطلب وتوصيله بدقة. / Used to accurately locate and track delivery orders.</string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>نحتاج إلى الموقع لتوصيل طلباتك بدقة. / We need access to your location to accurately deliver your orders.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>نحتاج إلى الوصول لمعرض الصور لاختيار وتعيين صورة الملف الشخصي الخاصة بك.</string>
 	<key>NSCameraUsageDescription</key>
