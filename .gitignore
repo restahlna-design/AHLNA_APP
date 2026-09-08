@@ -40,3 +40,4 @@ inspect_*.dart
 *.apk
 *.sql
 *.zip
+admin_desktop/

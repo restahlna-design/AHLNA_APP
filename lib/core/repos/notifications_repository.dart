@@ -123,9 +123,7 @@ class NotificationsRepository {
     // HTTP Fallback
     final client = HttpClient();
     try {
-      final key = SupabaseConfig.serviceRoleKey.isNotEmpty
-          ? SupabaseConfig.serviceRoleKey
-          : _anonKey;
+      final key = _anonKey;
       final url = Uri.parse('$_supabaseUrl/rest/v1/notifications');
       final req = await client.postUrl(url);
       req.headers.set('apikey', key);
@@ -163,9 +161,7 @@ class NotificationsRepository {
     // HTTP Fallback
     final client = HttpClient();
     try {
-      final key = SupabaseConfig.serviceRoleKey.isNotEmpty
-          ? SupabaseConfig.serviceRoleKey
-          : _anonKey;
+      final key = _anonKey;
       final url = Uri.parse('$_supabaseUrl/rest/v1/notifications?id=eq.$id');
       final req = await client.deleteUrl(url);
       req.headers.set('apikey', key);

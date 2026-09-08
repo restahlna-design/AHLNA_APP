@@ -5,8 +5,6 @@ class Storage {
   static const _kName = 'name';
   static const _kPhone = 'phone';
   static const _kAddress = 'address';
-  static const _kSupabaseUrl = 'supabase_url';
-  static const _kSupabaseAnon = 'supabase_anon_key';
   static const _kTheme = 'theme_mode';
   static const _kProfileImage = 'profile_image_path';
 
@@ -46,22 +44,6 @@ class Storage {
     };
   }
 
-  static Future<void> saveSupabaseConfig({
-    required String url,
-    required String anonKey,
-  }) async {
-    final p = await SharedPreferences.getInstance();
-    await p.setString(_kSupabaseUrl, url);
-    await p.setString(_kSupabaseAnon, anonKey);
-  }
-
-  static Future<Map<String, String>> loadSupabaseConfig() async {
-    final p = await SharedPreferences.getInstance();
-    return {
-      'url': p.getString(_kSupabaseUrl) ?? '',
-      'anon': p.getString(_kSupabaseAnon) ?? '',
-    };
-  }
 
   static Future<void> saveProfileImage(String path) async {
     final p = await SharedPreferences.getInstance();
