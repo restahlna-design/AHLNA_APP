@@ -1,5 +1,3 @@
-import 'dart:io';
-import 'dart:convert';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/order.dart';
 import '../../models/food_item.dart';
@@ -28,6 +26,12 @@ class OrderRepository {
     double? customerLong,
     String? note,
   }) async {
+    final primary = _c;
+    if (primary == null) {
+      print('❌ Supabase client not available');
+      return null;
+    }
+
     final orderId = DateTime.now().millisecondsSinceEpoch.toString();
     final totalPrice = items.fold(0.0, (s, e) => s + e.item.price * e.quantity);
     final now = DateTime.now().toIso8601String();
@@ -57,83 +61,28 @@ class OrderRepository {
     if (customerLat != null) fullOrderData['customer_lat'] = customerLat;
     if (customerLong != null) fullOrderData['customer_long'] = customerLong;
 
-    bool orderInserted = false;
-
-    // --- Primary: Standard Supabase SDK ---
-    final primary = _c;
-    if (primary != null) {
+    // --- Insert order via Supabase SDK ---
+    try {
+      await primary.from(ordersTable).insert(fullOrderData);
+      print('✅ Order inserted with full data');
+    } catch (e1) {
+      print('⚠️ Full insert failed: $e1, retrying minimal data...');
+      final minData = <String, dynamic>{
+        'id': orderId,
+        'customer_name': customerName,
+        'phone': phone,
+        'address': finalAddress,
+        'status': 'pending',
+        'total_price': totalPrice,
+        'created_at': now,
+      };
       try {
-        await primary.from(ordersTable).insert(fullOrderData);
-        orderInserted = true;
-        print('✅ Order inserted with full data');
-      } catch (e1) {
-        print('⚠️ Full insert failed: $e1, retrying minimal data...');
-        final minData = <String, dynamic>{
-          'id': orderId,
-          'customer_name': customerName,
-          'phone': phone,
-          'address': finalAddress,
-          'status': 'pending',
-          'total_price': totalPrice,
-          'created_at': now,
-        };
-        try {
-          await primary.from(ordersTable).insert(minData);
-          orderInserted = true;
-          print('✅ Order inserted with minimal data fallback');
-        } catch (_) {}
+        await primary.from(ordersTable).insert(minData);
+        print('✅ Order inserted with minimal data fallback');
+      } catch (e2) {
+        print('❌ All order insert mechanisms failed for order $orderId: $e2');
+        return null;
       }
-    }
-
-    // --- Fallback: Direct HTTPS REST (Standard secure TLS, Anon Key) ---
-    if (!orderInserted) {
-      final client = HttpClient();
-      try {
-        final url = SupabaseConfig.supabaseUrl;
-        final anonKey = SupabaseConfig.supabaseAnonKey;
-
-        final req = await client.postUrl(Uri.parse('$url/rest/v1/$ordersTable'));
-        req.headers.set('apikey', anonKey);
-        req.headers.set('Authorization', 'Bearer $anonKey');
-        req.headers.set('Content-Type', 'application/json; charset=utf-8');
-        req.headers.set('Prefer', 'return=representation');
-        req.add(utf8.encode(jsonEncode(fullOrderData)));
-
-        final resp = await req.close();
-        if (resp.statusCode >= 200 && resp.statusCode < 300) {
-          orderInserted = true;
-          print('✅ Direct REST order insertion SUCCESS (${resp.statusCode})');
-        } else {
-          final minReq = await client.postUrl(Uri.parse('$url/rest/v1/$ordersTable'));
-          minReq.headers.set('apikey', anonKey);
-          minReq.headers.set('Authorization', 'Bearer $anonKey');
-          minReq.headers.set('Content-Type', 'application/json; charset=utf-8');
-          minReq.headers.set('Prefer', 'return=representation');
-          minReq.add(utf8.encode(jsonEncode({
-            'id': orderId,
-            'customer_name': customerName,
-            'phone': phone,
-            'address': finalAddress,
-            'status': 'pending',
-            'total_price': totalPrice,
-            'created_at': now,
-          })));
-          final minResp = await minReq.close();
-          if (minResp.statusCode >= 200 && minResp.statusCode < 300) {
-            orderInserted = true;
-            print('✅ Minimal REST order insertion SUCCESS');
-          }
-        }
-      } catch (httpErr) {
-        print('❌ Direct HTTP error: $httpErr');
-      } finally {
-        client.close();
-      }
-    }
-
-    if (!orderInserted) {
-      print('❌ All order insert mechanisms failed for order $orderId');
-      return null;
     }
 
     // --- INSERT ORDER ITEMS ---
@@ -149,34 +98,11 @@ class OrderRepository {
         };
       }).toList();
 
-      bool itemsInserted = false;
-      if (primary != null) {
-        try {
-          await primary.from(orderItemsTable).insert(itemsData);
-          itemsInserted = true;
-          print('✅ Order items inserted via SDK');
-        } catch (_) {}
-      }
-
-      if (!itemsInserted) {
-        final client = HttpClient();
-        try {
-          final url = SupabaseConfig.supabaseUrl;
-          final anonKey = SupabaseConfig.supabaseAnonKey;
-
-          final req = await client.postUrl(Uri.parse('$url/rest/v1/$orderItemsTable'));
-          req.headers.set('apikey', anonKey);
-          req.headers.set('Authorization', 'Bearer $anonKey');
-          req.headers.set('Content-Type', 'application/json; charset=utf-8');
-          req.headers.set('Prefer', 'return=representation');
-          req.add(utf8.encode(jsonEncode(itemsData)));
-          final resp = await req.close();
-          if (resp.statusCode >= 200 && resp.statusCode < 300) {
-            print('✅ Order items inserted via Direct REST');
-          }
-        } catch (_) {} finally {
-          client.close();
-        }
+      try {
+        await primary.from(orderItemsTable).insert(itemsData);
+        print('✅ Order items inserted via SDK');
+      } catch (e) {
+        print('⚠️ Order items insert failed: $e');
       }
     }
 

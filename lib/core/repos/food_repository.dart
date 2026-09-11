@@ -1,5 +1,3 @@
-import 'dart:convert';
-import 'dart:io';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../models/food_item.dart';
@@ -7,45 +5,9 @@ import '../supabase_client.dart';
 
 class FoodRepository {
   static const table = 'food_items';
-  static const _supabaseUrl = 'https://boylzidmvvldouxtrpiv.supabase.co';
-  static const _anonKey =
-      'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImJveWx6aWRtdnZsZG91eHRycGl2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjM4NDQ0NjgsImV4cCI6MjA3OTQyMDQ2OH0.k-YInG1GfcBK6GQCjOuGMYcP_m2Eq7yTQSPuspCExr0';
 
   SupabaseClient? get _c => SupabaseManager.client;
   Box? get _box => Hive.isBoxOpen('food_cache_v2') ? Hive.box('food_cache_v2') : null;
-
-  Future<List<FoodItem>> _httpFetchAll() async {
-    final client = HttpClient();
-    try {
-      final url = Uri.parse('$_supabaseUrl/rest/v1/$table?select=*&order=created_at.desc');
-      final req = await client.getUrl(url);
-      req.headers.set('apikey', _anonKey);
-      req.headers.set('Authorization', 'Bearer $_anonKey');
-      req.headers.set('Content-Type', 'application/json');
-
-      final resp = await req.close().timeout(const Duration(seconds: 15));
-      final body = await resp.transform(utf8.decoder).join();
-
-      if (resp.statusCode == 200) {
-        final List<dynamic> rows = jsonDecode(body);
-        final items = _parseItems(rows);
-        if (items.isNotEmpty) {
-          try {
-            final box = _box;
-            await box?.put('__ALL__', rows);
-          } catch (_) {}
-        }
-        return items;
-      } else {
-        return [];
-      }
-    } catch (e) {
-      print('❌ HTTP fetchAll error: $e');
-      return [];
-    } finally {
-      client.close();
-    }
-  }
 
   List<FoodItem> _parseItems(List<dynamic>? rows) {
     if (rows == null) return [];
@@ -80,17 +42,17 @@ class FoodRepository {
   }
 
   Future<List<FoodItem>> fetchByCategory(String category) async {
-    final all = await _httpFetchAll();
-    if (all.isNotEmpty) {
-      return filterByCategory(all, category);
-    }
-
     final c = _c;
     if (c != null) {
       try {
         final res = await c.from(table).select().order('created_at', ascending: false);
         final items = _parseItems(res as List?);
         if (items.isNotEmpty) {
+          // Cache the results
+          try {
+            final box = _box;
+            await box?.put('__ALL__', res);
+          } catch (_) {}
           return filterByCategory(items, category);
         }
       } catch (e) {
@@ -98,6 +60,7 @@ class FoodRepository {
       }
     }
 
+    // Hive cache fallback
     final box = _box;
     if (box != null) {
       final cached = box.get('__ALL__') ?? box.get(category);
@@ -140,15 +103,19 @@ class FoodRepository {
   ];
 
   Future<List<FoodItem>> fetchAllFresh() async {
-    final all = await _httpFetchAll();
-    if (all.isNotEmpty) return all;
-
     final c = _c;
     if (c != null) {
       try {
         final res = await c.from(table).select().order('created_at', ascending: false);
         final items = _parseItems(res as List?);
-        if (items.isNotEmpty) return items;
+        if (items.isNotEmpty) {
+          // Cache the results
+          try {
+            final box = _box;
+            await box?.put('__ALL__', res);
+          } catch (_) {}
+          return items;
+        }
       } catch (e) {
         print('⚠️ SDK fetchAll failed: $e');
       }

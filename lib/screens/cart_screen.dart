@@ -579,14 +579,13 @@ class _CartScreenState extends State<CartScreen> {
                                       final serviceEnabled = await Geolocator.isLocationServiceEnabled();
                                       if (!serviceEnabled) {
                                         if (mounted) {
-                                          setState(() => _isLoading = false);
                                           _showToastNotification(
                                             context,
-                                            'يرجى تشغيل خدمة الموقع (GPS) في هاتفك أو المتابعة بالعنوان المكتوب',
-                                            isError: true,
+                                            'GPS غير مفعل، سيتم التوصيل بناءً على العنوان المكتوب',
+                                            isError: false,
                                           );
                                         }
-                                        return;
+                                        // المتابعة بدون إحداثيات — لا نوقف الطلب
                                       }
 
                                       // 2. التحقق من إذن الموقع وطلبه رسمياً
@@ -596,26 +595,22 @@ class _CartScreenState extends State<CartScreen> {
                                       }
                                       if (permission == LocationPermission.deniedForever) {
                                         if (mounted) {
-                                          setState(() => _isLoading = false);
                                           _showToastNotification(
                                             context,
-                                            'يرجى تفعيل إذن الموقع للتطبيق من إعدادات الهاتف',
-                                            isError: true,
+                                            'إذن الموقع مرفوض، سيتم التوصيل بناءً على العنوان المكتوب',
+                                            isError: false,
                                           );
-                                          await Geolocator.openAppSettings();
                                         }
-                                        return;
-                                      }
-                                      if (permission == LocationPermission.denied) {
+                                        // المتابعة بدون إحداثيات
+                                      } else if (permission == LocationPermission.denied) {
                                         if (mounted) {
-                                          setState(() => _isLoading = false);
                                           _showToastNotification(
                                             context,
-                                            'تم رفض إذن الموقع، يمكنك المتابعة بالعنوان المكتوب',
-                                            isError: true,
+                                            'تم رفض إذن الموقع، سيتم التوصيل بناءً على العنوان المكتوب',
+                                            isError: false,
                                           );
                                         }
-                                        return;
+                                        // المتابعة بدون إحداثيات
                                       }
 
                                       // 3. محاولة جلب آخر موقع مسجل أولاً
