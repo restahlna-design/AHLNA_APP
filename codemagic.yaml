@@ -52,8 +52,27 @@ workflows:
           CERT_KEY="/Users/builder/cert_key.pem"
           openssl genrsa -out "$CERT_KEY" 2048
 
-          echo "== Deleting outdated certificate to free up slot if at limit =="
-          app-store-connect certificates delete DLTG6D2A58 || true
+          echo "== Managing Distribution Certificate Slots on Apple Developer Account =="
+          app-store-connect certificates delete CN623NV4PC || true
+          python3 -c '
+import subprocess, re
+try:
+    output = subprocess.check_output(["app-store-connect", "certificates", "list"]).decode("utf-8", errors="replace")
+    blocks = output.split("-- Signing Certificate --")
+    dist_ids = []
+    for b in blocks:
+        if "Type: DISTRIBUTION" in b:
+            m = re.search(r"Id:\s*([A-Z0-9]+)", b)
+            if m:
+                dist_ids.append(m.group(1))
+    print("Found active distribution certificate IDs:", dist_ids)
+    if len(dist_ids) >= 2:
+        for cid in dist_ids[:-1]:
+            print(f"Deleting older certificate {cid} to free up distribution slot...")
+            subprocess.run(["app-store-connect", "certificates", "delete", cid])
+except Exception as e:
+    print("Notice during certificate slot check:", e)
+' || true
 
           echo "== Fetching or Generating App Store Provisioning Profile and Distribution Certificate =="
           if ! app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
@@ -63,7 +82,21 @@ workflows:
             --certificate-key="@file:$CERT_KEY" \
             --p12-password "codemagic"; then
             echo "Retrying after cleaning additional certificate collision..."
-            app-store-connect certificates delete L4TY8GS75D || true
+            python3 -c '
+import subprocess, re
+try:
+    output = subprocess.check_output(["app-store-connect", "certificates", "list"]).decode("utf-8", errors="replace")
+    blocks = output.split("-- Signing Certificate --")
+    for b in blocks:
+        if "Type: DISTRIBUTION" in b:
+            m = re.search(r"Id:\s*([A-Z0-9]+)", b)
+            if m:
+                print(f"Emergency deleting certificate {m.group(1)}...")
+                subprocess.run(["app-store-connect", "certificates", "delete", m.group(1)])
+                break
+except Exception as e:
+    print("Emergency cleanup error:", e)
+' || true
             app-store-connect fetch-signing-files "com.example.ahlnaDaquq" \
               --type IOS_APP_STORE \
               --create \
