@@ -8,7 +8,8 @@ import '../main.dart';
 import '../core/storage.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  final bool isFromCheckout;
+  const LoginScreen({super.key, this.isFromCheckout = false});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -59,6 +60,12 @@ class _LoginScreenState extends State<LoginScreen>
   }
 
   Future<void> _initAuthFlow() async {
+    if (widget.isFromCheckout) {
+      setState(() {
+        _showForm = true;
+      });
+      return;
+    }
     final c = SupabaseManager.client;
     _loggedIn = c?.auth.currentUser != null;
     final registered = await Storage.isRegistered();
@@ -68,6 +75,7 @@ class _LoginScreenState extends State<LoginScreen>
     }
     if (registered) {
       final local = await Storage.loadProfile();
+      if (!mounted) return;
       final profile = ProfileProvider.of(context);
       profile.set(
         name: (local['name'] ?? '').toString(),
@@ -197,11 +205,24 @@ class _LoginScreenState extends State<LoginScreen>
           ),
         );
       }
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (_) => const RootScaffold()),
-      );
+      if (widget.isFromCheckout) {
+        Navigator.pop(context, true);
+      } else {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const RootScaffold()),
+        );
+      }
     }
+  }
+
+  void _continueAsGuest() {
+    final profile = ProfileProvider.of(context);
+    profile.set(name: '', phone: '', address: '');
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(builder: (_) => const RootScaffold()),
+    );
   }
 
   @override
@@ -209,7 +230,6 @@ class _LoginScreenState extends State<LoginScreen>
     // سحب الألوان من ثيم التطبيق الأصلي
     final theme = Theme.of(context);
     final primaryColor = theme.primaryColor;
-    final colorScheme = theme.colorScheme;
 
     return Scaffold(
       // جعل الخلفية رمادي فاتح جداً لتبرز البطاقة البيضاء
@@ -283,9 +303,11 @@ class _LoginScreenState extends State<LoginScreen>
                                 color: Colors.white24,
                                 borderRadius: BorderRadius.circular(20),
                               ),
-                              child: const Text(
-                                "يرجى تسجيل بياناتك",
-                                style: TextStyle(
+                              child: Text(
+                                widget.isFromCheckout
+                                    ? "يرجى تسجيل الدخول لإتمام طلبك"
+                                    : "يرجى تسجيل بياناتك",
+                                style: const TextStyle(
                                   color: Colors.white,
                                   fontSize: 14,
                                 ),
@@ -297,6 +319,24 @@ class _LoginScreenState extends State<LoginScreen>
                     ),
                   ),
                 ),
+                if (widget.isFromCheckout)
+                  Positioned(
+                    top: MediaQuery.of(context).padding.top + 10,
+                    right: 16,
+                    child: SafeArea(
+                      child: CircleAvatar(
+                        backgroundColor: Colors.black26,
+                        child: IconButton(
+                          icon: const Icon(
+                            Icons.arrow_back_ios_new_rounded,
+                            color: Colors.white,
+                            size: 18,
+                          ),
+                          onPressed: () => Navigator.pop(context, false),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
 
@@ -367,15 +407,75 @@ class _LoginScreenState extends State<LoginScreen>
                                     borderRadius: BorderRadius.circular(16),
                                   ),
                                 ),
-                                child: const Text(
-                                  'حفظ ومتابعة',
-                                  style: TextStyle(
+                                child: Text(
+                                  widget.isFromCheckout ? 'حفظ ومتابعة الطلب' : 'حفظ ومتابعة',
+                                  style: const TextStyle(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
                                   ),
                                 ),
                               ),
                             ),
+
+                            // خيار الدخول كضيف (يظهر فقط في التدفق الافتراضي للبداية)
+                            if (!widget.isFromCheckout) ...[
+                              const SizedBox(height: 22),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: Divider(
+                                      color: Colors.grey.shade300,
+                                      thickness: 1,
+                                    ),
+                                  ),
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                                    child: Text(
+                                      'أو',
+                                      style: TextStyle(
+                                        color: Colors.grey.shade600,
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Divider(
+                                      color: Colors.grey.shade300,
+                                      thickness: 1,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 18),
+                              SizedBox(
+                                width: double.infinity,
+                                height: 55,
+                                child: OutlinedButton.icon(
+                                  onPressed: _continueAsGuest,
+                                  icon: Icon(
+                                    Icons.person_outline_rounded,
+                                    color: primaryColor,
+                                    size: 24,
+                                  ),
+                                  label: Text(
+                                    'الدخول كضيف',
+                                    style: TextStyle(
+                                      fontSize: 17,
+                                      fontWeight: FontWeight.bold,
+                                      color: primaryColor,
+                                    ),
+                                  ),
+                                  style: OutlinedButton.styleFrom(
+                                    side: BorderSide(color: primaryColor, width: 1.6),
+                                    shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    backgroundColor: primaryColor.withValues(alpha: 0.05),
+                                  ),
+                                ),
+                              ),
+                            ],
                           ],
                         ],
                       ),

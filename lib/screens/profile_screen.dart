@@ -7,6 +7,7 @@ import '../widgets/elastic_button.dart';
 import '../core/profile.dart';
 import '../core/repos/profile_repository.dart';
 import '../core/storage.dart';
+import '../core/supabase_client.dart';
 
 import '../screens/login_screen.dart';
 
@@ -24,6 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   final _phoneController = TextEditingController();
   final _addressController = TextEditingController();
   bool _loaded = false;
+  bool _isGuest = false;
   File? _localImage;
 
   @override
@@ -60,7 +62,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Future<void> _save() async {
     if (_formKey.currentState?.validate() ?? false) {
+      final wasGuest = _isGuest;
       final profile = ProfileProvider.of(context);
+      final user = SupabaseManager.client?.auth.currentUser;
       profile.set(
         name: _nameController.text.trim(),
         phone: _phoneController.text.trim(),
@@ -71,6 +75,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
         phone: profile.phone,
         name: profile.name,
         address: profile.address,
+        user: user?.id,
       );
       await Storage.saveProfile(
         name: profile.name,
@@ -78,16 +83,44 @@ class _ProfileScreenState extends State<ProfileScreen> {
         address: profile.address,
       );
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            ok
-                ? 'تم حفظ البيانات'
-                : 'تعذر تحديث قاعدة البيانات، تم الحفظ محليًا',
+      setState(() {
+        _isGuest = false;
+      });
+      if (wasGuest) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: const Text(
+              'تم إنشاء حسابك بنجاح، أهلاً بك في أهلنا داقوق ❤️',
+              style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold),
+            ),
+            backgroundColor: const Color(0xFF23AA49),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            duration: const Duration(seconds: 3),
           ),
-        ),
-      );
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              ok
+                  ? 'تم حفظ البيانات بنجاح'
+                  : 'تعذر تحديث قاعدة البيانات، تم الحفظ محليًا',
+              style: const TextStyle(fontFamily: 'Tajawal'),
+            ),
+            backgroundColor: ok ? const Color(0xFF23AA49) : Colors.orange,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
     }
+  }
+
+  void _goToLogin() {
+    Navigator.of(context).push(
+      MaterialPageRoute(builder: (context) => const LoginScreen()),
+    );
   }
 
   Future<void> _logout() async {
@@ -190,6 +223,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
       _nameController.text = profile.name;
       _phoneController.text = profile.phone;
       _addressController.text = profile.address;
+      final registered = await Storage.isRegistered();
+      final isGuest = !registered || profile.phone.isEmpty;
+      if (mounted) {
+        setState(() {
+          _isGuest = isGuest;
+        });
+      }
       if (profile.phone.isNotEmpty) {
         final repo = ProfileRepository();
         final remote = await repo.getByPhone(profile.phone);
@@ -306,7 +346,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     builder: (_, __) => Text(
                       _nameController.text.isNotEmpty
                           ? _nameController.text
-                          : 'مستخدم جديد',
+                          : (_isGuest ? 'حساب زائر' : 'مستخدم جديد'),
                       style: Theme.of(context).textTheme.headlineSmall
                           ?.copyWith(
                             fontWeight: FontWeight.bold,
@@ -320,9 +360,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     builder: (_, __) => Text(
                       _phoneController.text.isNotEmpty
                           ? _phoneController.text
-                          : '',
+                          : (_isGuest ? 'بيانات الحساب غير مكتملة' : ''),
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: cs.onSurface.withValues(alpha: 0.6),
+                        color: _isGuest
+                            ? Colors.amber.shade700
+                            : cs.onSurface.withValues(alpha: 0.6),
+                        fontWeight: _isGuest ? FontWeight.bold : FontWeight.normal,
                       ),
                     ),
                   ),
@@ -349,6 +392,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 key: _formKey,
                 child: Column(
                   children: [
+                    // إشعار توضيحي إذا كان الحساب كضيف
+                    if (_isGuest)
+                      Container(
+                        margin: const EdgeInsets.only(bottom: 20),
+                        padding: const EdgeInsets.all(14),
+                        decoration: BoxDecoration(
+                          color: Colors.amber.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: Colors.amber.withValues(alpha: 0.35),
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.info_outline_rounded,
+                              color: Colors.amber,
+                              size: 24,
+                            ),
+                            const SizedBox(width: 10),
+                            Expanded(
+                              child: Text(
+                                'أنت تتصفح التطبيق كضيف. يرجى إكمال بياناتك أدناه لإنشاء حسابك وتأكيد طلباتك بسهولة.',
+                                style: TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w600,
+                                  color: cs.onSurface.withValues(alpha: 0.85),
+                                  height: 1.4,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                     _buildModernTextField(
                       controller: _nameController,
                       label: 'الاسم الكامل',
@@ -356,19 +433,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       cs: cs,
                       inputColor: inputColor,
                       validator: (v) =>
-                          (v == null || v.isEmpty) ? 'يرجى إدخال الاسم' : null,
+                          (v == null || v.trim().isEmpty) ? 'يرجى إدخال الاسم' : null,
                     ),
                     const SizedBox(height: 16),
                     _buildModernTextField(
                       controller: _phoneController,
-                      label: 'رقم الهاتف',
+                      label: 'رقم الهاتف (0770...)',
                       icon: Icons.phone_iphone_outlined,
                       cs: cs,
                       inputColor: inputColor,
                       keyboardType: TextInputType.phone,
-                      validator: (v) => (v == null || v.isEmpty)
-                          ? 'يرجى إدخال رقم الهاتف'
-                          : null,
+                      validator: (v) {
+                        if (v == null || v.trim().isEmpty) {
+                          return 'يرجى إدخال رقم الهاتف';
+                        }
+                        final s = v.trim();
+                        if (!RegExp(r'^07\d{9}$').hasMatch(s)) {
+                          return 'رقم الهاتف يجب أن يبدأ بـ 07 ويكون 11 رقمًا';
+                        }
+                        return null;
+                      },
                     ),
                     const SizedBox(height: 16),
                     _buildModernTextField(
@@ -378,7 +462,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       cs: cs,
                       inputColor: inputColor,
                       maxLines: 3,
-                      validator: (v) => (v == null || v.isEmpty)
+                      validator: (v) => (v == null || v.trim().isEmpty)
                           ? 'يرجى إدخال العنوان'
                           : null,
                     ),
@@ -404,10 +488,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                   ),
                                 ],
                               ),
-                              child: const Center(
+                              child: Center(
                                 child: Text(
-                                  'حفظ التعديلات',
-                                  style: TextStyle(
+                                  _isGuest ? 'حفظ وإنشاء الحساب' : 'حفظ التعديلات',
+                                  style: const TextStyle(
                                     color: Colors.white,
                                     fontWeight: FontWeight.bold,
                                     fontSize: 16,
@@ -421,7 +505,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           flex: 2,
                           child: ElasticButton(
-                            onPressed: _logout,
+                            onPressed: _isGuest ? _goToLogin : _logout,
                             child: Container(
                               padding: const EdgeInsets.symmetric(vertical: 16),
                               decoration: BoxDecoration(
@@ -434,7 +518,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               child: Center(
                                 child: Text(
-                                  'تسجيل خروج',
+                                  _isGuest ? 'تسجيل الدخول' : 'تسجيل خروج',
                                   style: TextStyle(
                                     color: cs.primary,
                                     fontWeight: FontWeight.bold,
@@ -451,40 +535,41 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 24),
-
-            // --- زر حذف الحساب ---
-            ElasticButton(
-              onPressed: _delete,
-              child: Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 14),
-                decoration: BoxDecoration(
-                  color: Colors.redAccent.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Colors.redAccent.withValues(alpha: 0.3),
+            if (!_isGuest) ...[
+              const SizedBox(height: 24),
+              // --- زر حذف الحساب ---
+              ElasticButton(
+                onPressed: _delete,
+                child: Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.1),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(
+                      color: Colors.redAccent.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: const [
+                      Icon(
+                        Icons.delete_forever_outlined,
+                        color: Colors.redAccent,
+                      ),
+                      SizedBox(width: 8),
+                      Text(
+                        'حذف الحساب نهائياً',
+                        style: TextStyle(
+                          color: Colors.redAccent,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: const [
-                    Icon(
-                      Icons.delete_forever_outlined,
-                      color: Colors.redAccent,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'حذف الحساب نهائياً',
-                      style: TextStyle(
-                        color: Colors.redAccent,
-                        fontWeight: FontWeight.w600,
-                      ),
-                    ),
-                  ],
-                ),
               ),
-            ),
+            ],
             const SizedBox(height: 30),
           ],
         ),

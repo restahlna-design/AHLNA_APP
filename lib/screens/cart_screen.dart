@@ -5,6 +5,7 @@ import '../core/storage.dart';
 import '../core/repos/order_repository.dart';
 import '../models/order.dart';
 import '../core/profile.dart';
+import 'login_screen.dart';
 
 class CartScreen extends StatefulWidget {
   final Order? editingOrder;
@@ -357,15 +358,123 @@ class _CartScreenState extends State<CartScreen> {
                               ? null
                               : () async {
                                   final profile = ProfileProvider.of(context);
+                                  final isRegistered = await Storage.isRegistered();
                                   if (profile.name.isEmpty ||
                                       profile.phone.isEmpty ||
                                       profile.address.isEmpty) {
                                     final local = await Storage.loadProfile();
-                                    profile.set(
-                                      name: local['name'],
-                                      phone: local['phone'],
-                                      address: local['address'],
+                                    if ((local['name'] ?? '').isNotEmpty ||
+                                        (local['phone'] ?? '').isNotEmpty) {
+                                      profile.set(
+                                        name: local['name'],
+                                        phone: local['phone'],
+                                        address: local['address'],
+                                      );
+                                    }
+                                  }
+
+                                  // التحقق من حالة الضيف عند إتمام الطلب فقط
+                                  final isGuest = !isRegistered || profile.phone.isEmpty;
+                                  if (isGuest) {
+                                    if (!context.mounted) return;
+                                    final shouldLogin = await showDialog<bool>(
+                                      context: context,
+                                      builder: (ctx) {
+                                        final theme = Theme.of(ctx);
+                                        final dialogCs = theme.colorScheme;
+                                        return AlertDialog(
+                                          shape: RoundedRectangleBorder(
+                                            borderRadius: BorderRadius.circular(24),
+                                          ),
+                                          backgroundColor: theme.scaffoldBackgroundColor,
+                                          surfaceTintColor: Colors.transparent,
+                                          title: Row(
+                                            children: [
+                                              Container(
+                                                padding: const EdgeInsets.all(8),
+                                                decoration: BoxDecoration(
+                                                  color: dialogCs.primary.withValues(alpha: 0.12),
+                                                  shape: BoxShape.circle,
+                                                ),
+                                                child: Icon(
+                                                  Icons.lock_outline_rounded,
+                                                  color: dialogCs.primary,
+                                                  size: 26,
+                                                ),
+                                              ),
+                                              const SizedBox(width: 12),
+                                              const Text(
+                                                'تسجيل الدخول مطلوب',
+                                                style: TextStyle(
+                                                  fontWeight: FontWeight.bold,
+                                                  fontSize: 18,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          content: const Text(
+                                            'لإتمام طلبك، يرجى تسجيل الدخول أولاً.',
+                                            style: TextStyle(fontSize: 15, height: 1.4),
+                                          ),
+                                          actionsPadding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () => Navigator.pop(ctx, false),
+                                              child: Text(
+                                                'إلغاء',
+                                                style: TextStyle(
+                                                  color: dialogCs.outline,
+                                                  fontWeight: FontWeight.bold,
+                                                ),
+                                              ),
+                                            ),
+                                            ElevatedButton(
+                                              onPressed: () => Navigator.pop(ctx, true),
+                                              style: ElevatedButton.styleFrom(
+                                                backgroundColor: dialogCs.primary,
+                                                foregroundColor: Colors.white,
+                                                shape: RoundedRectangleBorder(
+                                                  borderRadius: BorderRadius.circular(12),
+                                                ),
+                                                padding: const EdgeInsets.symmetric(
+                                                  horizontal: 20,
+                                                  vertical: 12,
+                                                ),
+                                              ),
+                                              child: const Text(
+                                                'تسجيل الدخول',
+                                                style: TextStyle(fontWeight: FontWeight.bold),
+                                              ),
+                                            ),
+                                          ],
+                                        );
+                                      },
                                     );
+
+                                    if (shouldLogin == true && mounted) {
+                                      final loggedIn = await Navigator.push<bool>(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => const LoginScreen(isFromCheckout: true),
+                                        ),
+                                      );
+                                      if (loggedIn == true && mounted) {
+                                        final updated = await Storage.loadProfile();
+                                        profile.set(
+                                          name: updated['name'],
+                                          phone: updated['phone'],
+                                          address: updated['address'],
+                                        );
+                                        if (mounted) {
+                                          _showToastNotification(
+                                            context,
+                                            'تم تسجيل الدخول بنجاح! يمكنك الآن إتمام طلبك.',
+                                            isError: false,
+                                          );
+                                        }
+                                      }
+                                    }
+                                    return;
                                   }
 
                                   // ----------------------------------------------------
