@@ -66,4 +66,32 @@ class NotificationsRepository {
       }
     }, isBroadcast: true);
   }
+
+  Future<bool> sendNotification(String message, {String title = 'إشعار من الإدارة'}) async {
+    final c = _c;
+    if (c == null) return false;
+    try {
+      await c.from('notifications').insert({
+        'title': title,
+        'message': message,
+        'created_at': DateTime.now().toIso8601String(),
+      });
+      return true;
+    } catch (e) {
+      print('Error sending notification: $e');
+      return false;
+    }
+  }
+
+  Future<bool> deleteNotification(int id) async {
+    final c = _c;
+    if (c == null) return false;
+    try {
+      await c.from('notifications').delete().eq('id', id);
+      return true;
+    } catch (e) {
+      print('Error deleting notification: $e');
+      return false;
+    }
+  }
 }

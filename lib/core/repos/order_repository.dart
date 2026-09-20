@@ -57,7 +57,6 @@ class OrderRepository {
       'created_at': now,
       'order_type': orderType,
     };
-    if (cleanNote != null) fullOrderData['note'] = cleanNote;
     if (customerLat != null) fullOrderData['customer_lat'] = customerLat;
     if (customerLong != null) fullOrderData['customer_long'] = customerLong;
 
@@ -285,9 +284,7 @@ class OrderRepository {
         'address': finalAddress,
         'total_price': totalPrice,
         'order_type': orderType,
-        'is_edited': true,
       };
-      if (cleanNote != null) updateData['note'] = cleanNote;
       if (customerLat != null) updateData['customer_lat'] = customerLat;
       if (customerLong != null) updateData['customer_long'] = customerLong;
 
@@ -299,7 +296,6 @@ class OrderRepository {
           'phone': phone,
           'address': finalAddress,
           'total_price': totalPrice,
-          'is_edited': true,
         };
         await primary.from(ordersTable).update(minData).eq('id', orderId);
       }

@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import '../core/cart.dart';
@@ -477,6 +478,22 @@ class _CartScreenState extends State<CartScreen> {
                                     return;
                                   }
 
+                                  // فحص وجود طلب سابق قيد التنفيذ للزبون (لا يمكن الطلب مرتين قبل اكتمال الطلب الأول)
+                                  final Order? targetOrder = widget.editingOrder ?? cart.editingOrder;
+                                  if (targetOrder == null && profile.phone.isNotEmpty) {
+                                    setState(() => _isLoading = true);
+                                    Order? activeOrder;
+                                    try {
+                                      activeOrder = await OrderRepository().getActiveOrderForPhone(profile.phone);
+                                    } catch (_) {}
+                                    if (mounted) setState(() => _isLoading = false);
+
+                                    if (activeOrder != null && mounted) {
+                                      _showActiveOrderWarningDialog(context, activeOrder);
+                                      return;
+                                    }
+                                  }
+
                                   // ----------------------------------------------------
                                   //  🔥 بداية نافذة الاختيار الجديدة (Premium Design) 🔥
                                   // ----------------------------------------------------
@@ -798,9 +815,12 @@ class _CartScreenState extends State<CartScreen> {
                                        if (success) {
                                          orderId = targetOrder.id;
                                        } else {
-                                         // Fallback if RLS or DB prevents UPDATE on mobile
-                                         print('⚠️ updateOrder returned false; falling back to creating updated order');
+                                         // ✅ Fallback: حذف الطلب القديم أولاً لتفادي trigger قاعدة البيانات ثم إنشاء الجديد
+                                         print('⚠️ updateOrder returned false; deleting old order FIRST then creating new');
                                          final shortId = targetOrder.id.length > 5 ? targetOrder.id.substring(0, 5) : targetOrder.id;
+                                         // 1. حذف الطلب القديم أولاً (مهم جداً قبل الإنشاء)
+                                         try { await repo.deleteOrder(targetOrder.id); } catch (_) {}
+                                         // 2. إنشاء الطلب المعدَّل بعد الحذف
                                          orderId = await repo.createOrder(
                                            customerName: name,
                                            phone: phone,
@@ -816,7 +836,22 @@ class _CartScreenState extends State<CartScreen> {
                                          }
                                        }
                                      } else {
-                                       orderId = await repo.createOrder(
+                                        // فحص أمان إضافي: التأكد من عدم وجود طلب نشط غير مكتمل
+                                        if (phone.isNotEmpty) {
+                                          Order? activeCheck;
+                                          try {
+                                            activeCheck = await repo.getActiveOrderForPhone(phone);
+                                          } catch (_) {}
+                                          if (activeCheck != null) {
+                                            setState(() => _isLoading = false);
+                                            if (mounted) {
+                                              _showActiveOrderWarningDialog(context, activeCheck);
+                                            }
+                                            return;
+                                          }
+                                        }
+
+                                        orderId = await repo.createOrder(
                                          customerName: name,
                                          phone: phone,
                                          address: address,
@@ -1111,42 +1146,214 @@ class _CartScreenState extends State<CartScreen> {
                   ),
                 ),
               ),
-              const SizedBox(height: 12),
-
-              // زر المتابعة بالعنوان المكتوب (ميزة تفضيلية تمنع رفض أبل)
-              SizedBox(
-                width: double.infinity,
-                height: 48,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: cs.onSurface.withValues(alpha: 0.8),
-                    side: BorderSide(
-                      color: cs.outline.withValues(alpha: 0.25),
-                      width: 1.2,
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
-                    ),
-                  ),
-                  onPressed: () => Navigator.pop(ctx, false),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.home_outlined, size: 18, color: cs.onSurface.withValues(alpha: 0.7)),
-                      const SizedBox(width: 8),
-                      const Text(
-                        'المتابعة بالعنوان المكتوب فقط',
-                        style: TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
-                          fontFamily: 'Tajawal',
-                        ),
+              // زر المتابعة بالعنوان المكتوب: مخصص للآيفون فقط (Apple 5.1.1)، محذوف نهائياً من الأندرويد
+              if (Platform.isIOS) ...[
+                const SizedBox(height: 12),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: cs.onSurface.withValues(alpha: 0.8),
+                      side: BorderSide(
+                        color: cs.outline.withValues(alpha: 0.25),
+                        width: 1.2,
                       ),
-                    ],
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () => Navigator.pop(ctx, false),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.home_outlined, size: 18, color: cs.onSurface.withValues(alpha: 0.7)),
+                        const SizedBox(width: 8),
+                        const Text(
+                          'المتابعة بالعنوان المكتوب فقط',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Tajawal',
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ],
+          ),
+        );
+      },
+    );
+  }
+
+  // ⚠️ نافذة تنبيه فاخرة لمنع تكرار الطلب قبل اكتمال الطلب السابق ⚠️
+  void _showActiveOrderWarningDialog(BuildContext context, Order activeOrder) {
+    final theme = Theme.of(context);
+    final cs = theme.colorScheme;
+    final shortId = activeOrder.id.length > 4 
+        ? activeOrder.id.substring(activeOrder.id.length - 4) 
+        : activeOrder.id;
+
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) {
+        return Dialog(
+          backgroundColor: Colors.transparent,
+          insetPadding: const EdgeInsets.symmetric(horizontal: 20),
+          child: Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(
+              color: theme.scaffoldBackgroundColor,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.25),
+                  blurRadius: 25,
+                  offset: const Offset(0, 10),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 76,
+                  height: 76,
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: Colors.amber.withValues(alpha: 0.3),
+                      width: 2,
+                    ),
+                  ),
+                  child: const Icon(
+                    Icons.hourglass_top_rounded,
+                    color: Colors.amber,
+                    size: 38,
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Text(
+                  'لديك طلب قيد التنفيذ حالياً',
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    fontFamily: 'Tajawal',
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'عزيزي الزبون، لديك طلب سابق (#$shortId) قيد المعالجة في لوحة التحكم.\n\nحسب نظام المطعم، لا يمكن إرسال طلب جديد إلا بعد اكتمال واستلام طلبك السابق.',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 14.5,
+                    height: 1.6,
+                    color: cs.onSurface.withValues(alpha: 0.8),
+                    fontFamily: 'Tajawal',
+                  ),
+                ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 50,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.orange.shade800,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 4,
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      final cart = CartProvider.of(context);
+                      cart.setEditingOrder(activeOrder);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text(
+                            'تم تفعيل تعديل طلبك الحالي. اضغط "إتمام الطلب" لحفظ التعديل.',
+                            style: TextStyle(fontFamily: 'Tajawal', fontWeight: FontWeight.bold),
+                          ),
+                          backgroundColor: Colors.orange,
+                          duration: Duration(seconds: 3),
+                        ),
+                      );
+                    },
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.edit_note_rounded, size: 22),
+                        SizedBox(width: 8),
+                        Text(
+                          'تعديل طلبي الحالي بهذه السلة',
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Tajawal',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: cs.primary,
+                      side: BorderSide(color: cs.primary.withValues(alpha: 0.5)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.pop(context);
+                    },
+                    child: const Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.track_changes_rounded, size: 20),
+                        SizedBox(width: 8),
+                        Text(
+                          'الرجوع ومتابعة طلبي الحالي',
+                          style: TextStyle(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.bold,
+                            fontFamily: 'Tajawal',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  height: 40,
+                  child: TextButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    child: Text(
+                      'إلغاء',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: cs.onSurface.withValues(alpha: 0.6),
+                        fontFamily: 'Tajawal',
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         );
       },

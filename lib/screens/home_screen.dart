@@ -521,6 +521,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     }
     // Set global edit flag in cart controller
     cart.setEditingOrder(o);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => CartScreen(editingOrder: o)),
+    );
   }
 
   @override
