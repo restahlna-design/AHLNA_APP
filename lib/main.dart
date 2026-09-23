@@ -443,13 +443,22 @@ class _RootScaffoldState extends State<RootScaffold> {
   int _index = 0;
   late final List<Widget> _tabs;
 
+  void setTab(int i) {
+    if (mounted) {
+      setState(() => _index = i);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
     _tabs = [
       const HomeScreen(key: ValueKey('tab_menu')),
       const NotificationsScreen(key: ValueKey('tab_notifications')),
-      const ProfileScreen(key: ValueKey('tab_profile')),
+      ProfileScreen(
+        key: const ValueKey('tab_profile'),
+        onGoHome: () => setTab(0),
+      ),
     ];
   }
 

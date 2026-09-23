@@ -12,13 +12,25 @@ import '../core/supabase_client.dart';
 import '../screens/login_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  final VoidCallback? onGoHome;
+  const ProfileScreen({super.key, this.onGoHome});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  void _returnHome() {
+    FocusScope.of(context).unfocus();
+    if (widget.onGoHome != null) {
+      widget.onGoHome!();
+    } else if (Navigator.canPop(context)) {
+      Navigator.pop(context);
+    } else {
+      Navigator.of(context).pushNamedAndRemoveUntil('/', (route) => false);
+    }
+  }
+
   // --- المنطق البرمجي (لم يتم تغييره) ---
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
@@ -61,6 +73,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _save() async {
+    FocusScope.of(context).unfocus();
     if (_formKey.currentState?.validate() ?? false) {
       final wasGuest = _isGuest;
       final profile = ProfileProvider.of(context);
@@ -268,16 +281,40 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
         centerTitle: true,
+        automaticallyImplyLeading: false,
+        actions: [
+          IconButton(
+            tooltip: 'الرجوع للرئيسية',
+            onPressed: _returnHome,
+            icon: Container(
+              padding: const EdgeInsets.all(7),
+              decoration: BoxDecoration(
+                color: cs.primary.withValues(alpha: 0.12),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(
+                Icons.arrow_back_rounded,
+                size: 20,
+                color: cs.primary,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       extendBodyBehindAppBar: true, // للسماح للمحتوى بالظهور خلف الـ AppBar
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(
-          16,
-          100,
-          16,
-          24,
-        ), // مساحة علوية للـ AppBar
-        child: Column(
+      body: GestureDetector(
+        onTap: () => FocusScope.of(context).unfocus(),
+        behavior: HitTestBehavior.translucent,
+        child: SingleChildScrollView(
+          keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
+          padding: const EdgeInsets.fromLTRB(
+            16,
+            100,
+            16,
+            24,
+          ), // مساحة علوية للـ AppBar
+          child: Column(
           children: [
             // --- قسم الهيدر (الصورة والاسم) ---
             Center(
@@ -574,8 +611,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 
   // --- ودجت مساعدة لحقول الإدخال العصرية ---
   Widget _buildModernTextField({
