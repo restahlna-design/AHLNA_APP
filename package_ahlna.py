@@ -3,7 +3,7 @@ import shutil
 import zipfile
 
 def package():
-    base_dir = r"D:\AHLNANEW - Copy"
+    base_dir = r"D:\AHLNA-APP - Copy"
     desktop_zip = r"C:\Users\kazaz\Desktop\ahlna.zip"
     d_zip = r"D:\ahlna.zip"
     temp_dir = r"D:\AHLNANEW - Copy\temp_package_ahlna"
@@ -109,13 +109,8 @@ def package():
 
     # Update extracted desktop folder as well
     desktop_extracted = r"C:\Users\kazaz\Desktop\ahlna"
-    if os.path.exists(desktop_extracted):
-        try:
-            shutil.rmtree(desktop_extracted)
-        except Exception as e:
-            print(f"Could not remove {desktop_extracted}: {e}")
     try:
-        shutil.copytree(root_folder, desktop_extracted)
+        shutil.copytree(root_folder, desktop_extracted, dirs_exist_ok=True)
         print(f"Copied extracted folder to {desktop_extracted}!")
     except Exception as e:
         print(f"Error copying to {desktop_extracted}: {e}")

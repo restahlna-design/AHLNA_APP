@@ -1,3 +1,27 @@
+class FoodVariant {
+  final String name;
+  final double price;
+
+  const FoodVariant({
+    required this.name,
+    required this.price,
+  });
+
+  factory FoodVariant.fromJson(Map<String, dynamic> json) {
+    return FoodVariant(
+      name: json['name']?.toString() ?? '',
+      price: (json['price'] is num)
+          ? (json['price'] as num).toDouble()
+          : (double.tryParse(json['price']?.toString() ?? '0') ?? 0.0),
+    );
+  }
+
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'price': price,
+  };
+}
+
 class FoodItem {
   final String id;
   final String name;
@@ -7,6 +31,7 @@ class FoodItem {
   final String category;
   final bool isAvailable;
   final int sortOrder;
+  final List<FoodVariant> variants;
 
   const FoodItem({
     required this.id,
@@ -17,7 +42,10 @@ class FoodItem {
     required this.category,
     this.isAvailable = true,
     this.sortOrder = 0,
+    this.variants = const [],
   });
+
+  bool get hasVariants => variants.isNotEmpty;
 
   String get heroTag => 'food_$id';
 
@@ -30,6 +58,7 @@ class FoodItem {
     String? category,
     bool? isAvailable,
     int? sortOrder,
+    List<FoodVariant>? variants,
   }) {
     return FoodItem(
       id: id ?? this.id,
@@ -40,10 +69,25 @@ class FoodItem {
       category: category ?? this.category,
       isAvailable: isAvailable ?? this.isAvailable,
       sortOrder: sortOrder ?? this.sortOrder,
+      variants: variants ?? this.variants,
     );
   }
 
   factory FoodItem.fromJson(Map<String, dynamic> json) {
+    List<FoodVariant> parsedVariants = [];
+    final rawVariants = json['variants'];
+    if (rawVariants is List) {
+      for (var v in rawVariants) {
+        if (v is Map) {
+          try {
+            parsedVariants.add(
+              FoodVariant.fromJson(Map<String, dynamic>.from(v)),
+            );
+          } catch (_) {}
+        }
+      }
+    }
+
     return FoodItem(
       id: json['id']?.toString() ?? '',
       name: json['name']?.toString() ?? 'بدون اسم',
@@ -57,6 +101,7 @@ class FoodItem {
       sortOrder: (json['sort_order'] is num)
           ? (json['sort_order'] as num).toInt()
           : (int.tryParse(json['sort_order']?.toString() ?? '0') ?? 0),
+      variants: parsedVariants,
     );
   }
 
@@ -78,6 +123,7 @@ class FoodItem {
       'category': category,
       'is_available': isAvailable,
       'sort_order': sortOrder,
+      'variants': variants.map((v) => v.toJson()).toList(),
     };
   }
 }

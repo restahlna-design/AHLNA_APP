@@ -47,6 +47,7 @@ class _DetailsScreenState extends State<DetailsScreen>
   late final TextEditingController _qtyController;
   bool _initialized = false;
   late final AnimationController _rotController;
+  int _selectedVariant = 0;
 
   @override
   void initState() {
@@ -68,9 +69,23 @@ class _DetailsScreenState extends State<DetailsScreen>
   @override
   Widget build(BuildContext context) {
     final cs = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     final cart = CartProvider.of(context);
+    final hasVariants = widget.item.variants.isNotEmpty;
+    final activeVariant = hasVariants
+        ? widget.item.variants[_selectedVariant.clamp(0, widget.item.variants.length - 1)]
+        : null;
+    final currentPrice = activeVariant != null ? activeVariant.price : widget.item.price;
+    final itemToAdd = activeVariant != null
+        ? widget.item.copyWith(
+            id: '${widget.item.id}_${activeVariant.name}',
+            name: '${widget.item.name} (${activeVariant.name})',
+            price: activeVariant.price,
+          )
+        : widget.item;
+
     if (!_initialized) {
-      final existing = cart.quantityFor(widget.item.id);
+      final existing = cart.quantityFor(itemToAdd.id);
       _qtyController.text = (existing > 0 ? existing : 1).toString();
       _initialized = true;
     }
@@ -128,7 +143,7 @@ class _DetailsScreenState extends State<DetailsScreen>
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      '${widget.item.price % 1 == 0 ? widget.item.price.toInt() : widget.item.price} IQD',
+                      '${currentPrice % 1 == 0 ? currentPrice.toInt() : currentPrice} IQD',
                       style: Theme.of(
                         context,
                       ).textTheme.headlineMedium?.copyWith(color: cs.primary),
@@ -138,6 +153,91 @@ class _DetailsScreenState extends State<DetailsScreen>
                       widget.item.description,
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
+                    if (hasVariants) ...[
+                      const SizedBox(height: 20),
+                      const Text(
+                        'اختر الحجم / الوجبة:',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: List.generate(widget.item.variants.length, (i) {
+                          final v = widget.item.variants[i];
+                          final isSelected = i == _selectedVariant;
+                          return InkWell(
+                            onTap: () {
+                              setState(() {
+                                _selectedVariant = i;
+                                final newQty = cart.quantityFor(
+                                  widget.item.copyWith(
+                                    id: '${widget.item.id}_${v.name}',
+                                  ).id,
+                                );
+                                _qtyController.text =
+                                    (newQty > 0 ? newQty : 1).toString();
+                              });
+                            },
+                            borderRadius: BorderRadius.circular(22),
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 18,
+                                vertical: 9,
+                              ),
+                              decoration: BoxDecoration(
+                                color: isSelected
+                                    ? (isDark
+                                        ? const Color(0xFF1E293B)
+                                        : Colors.white)
+                                    : (isDark
+                                        ? const Color(0xFF1E293B).withValues(alpha: 0.4)
+                                        : const Color(0xFFF8FAFC)),
+                                borderRadius: BorderRadius.circular(22),
+                                border: Border.all(
+                                  color: isSelected
+                                      ? cs.primary
+                                      : (isDark
+                                          ? Colors.grey.shade800
+                                          : Colors.grey.shade300),
+                                  width: isSelected ? 2.0 : 1.0,
+                                ),
+                                boxShadow: isSelected
+                                    ? [
+                                        BoxShadow(
+                                          color: cs.primary.withValues(alpha: 0.18),
+                                          blurRadius: 8,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ]
+                                    : null,
+                              ),
+                              child: Text(
+                                '${v.name} (${v.price % 1 == 0 ? v.price.toInt() : v.price} IQD)',
+                                style: TextStyle(
+                                  fontFamily: 'Tajawal',
+                                  fontSize: 14,
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.w600,
+                                  color: isSelected
+                                      ? (isDark
+                                          ? Colors.white
+                                          : const Color(0xFF0F172A))
+                                      : (isDark
+                                          ? Colors.grey.shade400
+                                          : Colors.grey.shade600),
+                                ),
+                              ),
+                            ),
+                          );
+                        }),
+                      ),
+                    ],
                     const SizedBox(height: 24),
                     Row(
                       children: [
@@ -171,7 +271,7 @@ class _DetailsScreenState extends State<DetailsScreen>
                                     final qty =
                                         int.tryParse(_qtyController.text) ?? 1;
                                     final finalQty = qty < 1 ? 1 : qty;
-                                    cart.setQuantity(widget.item, finalQty);
+                                    cart.setQuantity(itemToAdd, finalQty);
 
                                     // ✅ عرض رسالة Toast أنيقة: "تمت الإضافة إلى السلة" لمدة 1 ثانية
                                     if (ctx.mounted) {

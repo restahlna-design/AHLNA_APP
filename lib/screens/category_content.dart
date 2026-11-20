@@ -316,12 +316,12 @@ class _CategoryContentState extends State<CategoryContent>
                       ),
                     ),
 
-                    _buildBottomDetailCard(
-                      context,
-                      item,
-                      dimmed,
-                      theme,
-                      cardTranslate,
+                    _FoodDetailCard(
+                      item: item,
+                      dimmed: dimmed,
+                      theme: theme,
+                      cardTranslate: cardTranslate,
+                      cartKey: widget.cartKey,
                     ),
                   ],
                 ),
@@ -330,108 +330,6 @@ class _CategoryContentState extends State<CategoryContent>
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildBottomDetailCard(
-    BuildContext context,
-    FoodItem item,
-    bool dimmed,
-    ThemeData theme,
-    Offset cardTranslate,
-  ) {
-    return Align(
-      alignment: Alignment.bottomCenter,
-      child: Transform.translate(
-        offset: cardTranslate,
-        child: SafeArea(
-          top: false,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(12, 6, 12, 8),
-            decoration: BoxDecoration(
-              color: theme.cardColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, -5),
-                ),
-              ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  item.name,
-                  textAlign: TextAlign.center,
-                  style: theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: dimmed ? Colors.grey : null,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                Text(
-                  '${item.price % 1 == 0 ? item.price.toInt() : item.price} IQD',
-                  style: TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: dimmed ? Colors.grey : theme.primaryColor,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  item.description,
-                  textAlign: TextAlign.center,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: TextStyle(
-                    fontFamily: 'Tajawal',
-                    fontSize: 13.5,
-                    fontWeight: FontWeight.w600,
-                    height: 1.35,
-                    color: (theme.brightness == Brightness.dark)
-                        ? const Color(0xFFE2E8F0)
-                        : const Color(0xFF334155),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    Builder(
-                      builder: (btnContext) => IconButton(
-                        onPressed: dimmed
-                            ? null
-                            : () {
-                                FlyAnimation.run(
-                                  context,
-                                  cartKey: widget.cartKey,
-                                  buttonContext: btnContext,
-                                  imageUrl: item.imageUrl,
-                                  onComplete: () {
-                                    CartProvider.of(context).add(item);
-                                  },
-                                );
-                              },
-                        icon: Icon(
-                          Icons.add_circle,
-                          color: dimmed ? Colors.grey : theme.primaryColor,
-                          size: 34,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
     );
   }
 
@@ -535,6 +433,254 @@ class _CategoryContentState extends State<CategoryContent>
               ),
             ),
           ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FoodDetailCard extends StatefulWidget {
+  final FoodItem item;
+  final bool dimmed;
+  final ThemeData theme;
+  final Offset cardTranslate;
+  final GlobalKey cartKey;
+
+  const _FoodDetailCard({
+    required this.item,
+    required this.dimmed,
+    required this.theme,
+    required this.cardTranslate,
+    required this.cartKey,
+  });
+
+  @override
+  State<_FoodDetailCard> createState() => _FoodDetailCardState();
+}
+
+class _FoodDetailCardState extends State<_FoodDetailCard> {
+  int _selectedVariant = 0;
+
+  @override
+  void didUpdateWidget(_FoodDetailCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.item.id != oldWidget.item.id) {
+      _selectedVariant = 0;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final hasVariants = widget.item.variants.isNotEmpty;
+    final activeVariant = hasVariants
+        ? widget.item.variants[_selectedVariant.clamp(0, widget.item.variants.length - 1)]
+        : null;
+    final currentPrice = activeVariant != null ? activeVariant.price : widget.item.price;
+    final itemToAdd = activeVariant != null
+        ? widget.item.copyWith(
+            id: '${widget.item.id}_${activeVariant.name}',
+            name: '${widget.item.name} (${activeVariant.name})',
+            price: activeVariant.price,
+          )
+        : widget.item;
+
+    final isDark = widget.theme.brightness == Brightness.dark;
+
+    return Align(
+      alignment: Alignment.bottomCenter,
+      child: Transform.translate(
+        offset: widget.cardTranslate,
+        child: SafeArea(
+          top: false,
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+            decoration: BoxDecoration(
+              color: widget.theme.cardColor,
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(30),
+                topRight: Radius.circular(30),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.1),
+                  blurRadius: 20,
+                  offset: const Offset(0, -5),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  widget.item.name,
+                  textAlign: TextAlign.center,
+                  style: widget.theme.textTheme.headlineSmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: widget.dimmed ? Colors.grey : null,
+                  ),
+                ),
+                const SizedBox(height: 3),
+                AnimatedSwitcher(
+                  duration: const Duration(milliseconds: 200),
+                  transitionBuilder: (child, anim) =>
+                      FadeTransition(opacity: anim, child: child),
+                  child: Text(
+                    '${currentPrice % 1 == 0 ? currentPrice.toInt() : currentPrice} IQD',
+                    key: ValueKey<double>(currentPrice),
+                    style: TextStyle(
+                      fontSize: 21,
+                      fontWeight: FontWeight.bold,
+                      color: widget.dimmed
+                          ? Colors.grey
+                          : widget.theme.primaryColor,
+                    ),
+                  ),
+                ),
+                if (widget.item.description.isNotEmpty) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    widget.item.description,
+                    textAlign: TextAlign.center,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      fontFamily: 'Tajawal',
+                      fontSize: 13.5,
+                      fontWeight: FontWeight.w600,
+                      height: 1.35,
+                      color: isDark
+                          ? const Color(0xFFE2E8F0)
+                          : const Color(0xFF334155),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // الزر (+) بنفس التصميم والانميشن المتطابق تماماً مع باقي التطبيق
+                    Builder(
+                      builder: (btnContext) => IconButton(
+                        padding: EdgeInsets.zero,
+                        constraints: const BoxConstraints(),
+                        onPressed: widget.dimmed
+                            ? null
+                            : () {
+                                FlyAnimation.run(
+                                  context,
+                                  cartKey: widget.cartKey,
+                                  buttonContext: btnContext,
+                                  imageUrl: widget.item.imageUrl,
+                                  onComplete: () {
+                                    CartProvider.of(context).add(itemToAdd);
+                                  },
+                                );
+                              },
+                        icon: Icon(
+                          Icons.add_circle,
+                          color: widget.dimmed
+                              ? Colors.grey
+                              : widget.theme.primaryColor,
+                          size: 38,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    // أزرار الأحجام / الخيارات التفاعلية
+                    if (hasVariants)
+                      Expanded(
+                        child: SingleChildScrollView(
+                          scrollDirection: Axis.horizontal,
+                          reverse: true,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.end,
+                            children: List.generate(widget.item.variants.length, (i) {
+                              final v = widget.item.variants[i];
+                              final isSelected = i == _selectedVariant;
+
+                              return Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                child: InkWell(
+                                  onTap: widget.dimmed
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _selectedVariant = i;
+                                          });
+                                        },
+                                  borderRadius: BorderRadius.circular(22),
+                                  child: AnimatedContainer(
+                                    duration: const Duration(milliseconds: 200),
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 7,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? (isDark
+                                              ? const Color(0xFF1E293B)
+                                              : Colors.white)
+                                          : (isDark
+                                              ? const Color(0xFF1E293B).withValues(alpha: 0.4)
+                                              : const Color(0xFFF8FAFC)),
+                                      borderRadius: BorderRadius.circular(22),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? widget.theme.primaryColor
+                                            : (isDark
+                                                ? Colors.grey.shade800
+                                                : Colors.grey.shade300),
+                                        width: isSelected ? 2.0 : 1.0,
+                                      ),
+                                      boxShadow: isSelected
+                                          ? [
+                                              BoxShadow(
+                                                color: widget.theme.primaryColor.withValues(alpha: 0.18),
+                                                blurRadius: 8,
+                                                offset: const Offset(0, 3),
+                                              ),
+                                            ]
+                                          : [
+                                              BoxShadow(
+                                                color: Colors.black.withValues(alpha: 0.04),
+                                                blurRadius: 4,
+                                                offset: const Offset(0, 2),
+                                              ),
+                                            ],
+                                    ),
+                                    child: Text(
+                                      v.name,
+                                      style: TextStyle(
+                                        fontFamily: 'Tajawal',
+                                        fontSize: 14,
+                                        fontWeight: isSelected
+                                            ? FontWeight.bold
+                                            : FontWeight.w600,
+                                        color: isSelected
+                                            ? (isDark
+                                                ? Colors.white
+                                                : const Color(0xFF0F172A))
+                                            : (isDark
+                                                ? Colors.grey.shade400
+                                                : Colors.grey.shade600),
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              );
+                            }),
+                          ),
+                        ),
+                      )
+                    else
+                      const SizedBox.shrink(),
+                  ],
+                ),
+              ],
+            ),
+          ),
         ),
       ),
     );
