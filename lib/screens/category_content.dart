@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/food_item.dart';
+import '../widgets/metallic_rotating_painter.dart';
 import '../core/ui_utils.dart';
 import '../core/cart.dart';
 import '../core/animations/fly_animation.dart';
@@ -459,8 +460,25 @@ class _FoodDetailCard extends StatefulWidget {
   State<_FoodDetailCard> createState() => _FoodDetailCardState();
 }
 
-class _FoodDetailCardState extends State<_FoodDetailCard> {
+class _FoodDetailCardState extends State<_FoodDetailCard>
+    with SingleTickerProviderStateMixin {
   int _selectedVariant = 0;
+  late final AnimationController _rotationController;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 3500),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
 
   @override
   void didUpdateWidget(_FoodDetailCard oldWidget) {
@@ -476,12 +494,14 @@ class _FoodDetailCardState extends State<_FoodDetailCard> {
     final activeVariant = hasVariants
         ? widget.item.variants[_selectedVariant.clamp(0, widget.item.variants.length - 1)]
         : null;
-    final currentPrice = activeVariant != null ? activeVariant.price : widget.item.price;
+    final currentPrice = (activeVariant != null && activeVariant.price > 0)
+        ? activeVariant.price
+        : widget.item.price;
     final itemToAdd = activeVariant != null
         ? widget.item.copyWith(
             id: '${widget.item.id}_${activeVariant.name}',
             name: '${widget.item.name} (${activeVariant.name})',
-            price: activeVariant.price,
+            price: currentPrice,
           )
         : widget.item;
 
@@ -557,147 +577,226 @@ class _FoodDetailCardState extends State<_FoodDetailCard> {
                   ),
                 ],
                 const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // أزرار الأحجام / الخيارات التفاعلية (على اليمين في واجهة التطبيق العربية RTL)
-                    if (hasVariants)
-                      Expanded(
-                        child: SingleChildScrollView(
-                          scrollDirection: Axis.horizontal,
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.start,
-                            children: List.generate(widget.item.variants.length, (i) {
-                              final v = widget.item.variants[i];
-                              final isSelected = i == _selectedVariant;
+                SizedBox(
+                  height: 42,
+                  child: AnimatedBuilder(
+                    animation: _rotationController,
+                    builder: (context, _) {
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          // 1. أزرار الأحجام / الخيارات (على اليمين في واجهة RTL)
+                          if (hasVariants)
+                            Expanded(
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                                itemCount: widget.item.variants.length,
+                                separatorBuilder: (_, __) => const SizedBox(width: 8),
+                                itemBuilder: (context, i) {
+                                  final v = widget.item.variants[i];
+                                  final isSelected = i == _selectedVariant;
 
-                              return Padding(
-                                padding: const EdgeInsets.only(left: 8),
-                                child: InkWell(
-                                  onTap: widget.dimmed
-                                      ? null
-                                      : () {
-                                          setState(() {
-                                            _selectedVariant = i;
-                                          });
-                                        },
-                                  borderRadius: BorderRadius.circular(22),
-                                  child: AnimatedContainer(
-                                    duration: const Duration(milliseconds: 200),
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 16,
-                                      vertical: 7,
-                                    ),
-                                    decoration: BoxDecoration(
-                                      color: isSelected
-                                          ? (isDark
-                                              ? const Color(0xFF1E293B)
-                                              : Colors.white)
-                                          : (isDark
-                                              ? const Color(0xFF1E293B).withValues(alpha: 0.4)
-                                              : const Color(0xFFF8FAFC)),
-                                      borderRadius: BorderRadius.circular(22),
-                                      border: Border.all(
-                                        color: isSelected
-                                            ? widget.theme.primaryColor
-                                            : (isDark
-                                                ? Colors.grey.shade800
-                                                : Colors.grey.shade300),
-                                        width: isSelected ? 2.0 : 1.0,
+                                  final innerBg = isDark
+                                      ? const Color(0xFF13171F).withValues(alpha: 0.90)
+                                      : Colors.white.withValues(alpha: 0.95);
+
+                                  if (isSelected) {
+                                    return Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(999),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.35 : 0.20),
+                                            blurRadius: 10,
+                                            spreadRadius: 1,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
                                       ),
-                                      boxShadow: isSelected
-                                          ? [
-                                              BoxShadow(
-                                                color: widget.theme.primaryColor.withValues(alpha: 0.22),
-                                                blurRadius: 8,
-                                                offset: const Offset(0, 3),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(999),
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            Positioned.fill(
+                                              child: CustomPaint(
+                                                painter: MetallicRotatingPainter(
+                                                  progress: _rotationController.value,
+                                                  isDark: isDark,
+                                                ),
                                               ),
-                                            ]
-                                          : [
-                                              BoxShadow(
-                                                color: Colors.black.withValues(alpha: 0.04),
-                                                blurRadius: 4,
-                                                offset: const Offset(0, 2),
+                                            ),
+                                            Padding(
+                                              padding: const EdgeInsets.all(2.0),
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.circular(999),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                                                  decoration: BoxDecoration(
+                                                    color: innerBg,
+                                                    borderRadius: BorderRadius.circular(999),
+                                                  ),
+                                                  child: Center(
+                                                    child: Text(
+                                                      v.name,
+                                                      style: TextStyle(
+                                                        fontFamily: 'Tajawal',
+                                                        fontSize: 14,
+                                                        fontWeight: FontWeight.bold,
+                                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
                                               ),
-                                            ],
-                                    ),
-                                    child: Text(
-                                      v.name,
-                                      style: TextStyle(
-                                        fontFamily: 'Tajawal',
-                                        fontSize: 14,
-                                        fontWeight: isSelected
-                                            ? FontWeight.bold
-                                            : FontWeight.w600,
-                                        color: isSelected
-                                            ? (isDark
-                                                ? Colors.white
-                                                : const Color(0xFF0F172A))
-                                            : (isDark
-                                                ? Colors.grey.shade400
-                                                : Colors.grey.shade600),
+                                            ),
+                                          ],
+                                        ),
                                       ),
+                                    );
+                                  }
+
+                                  return InkWell(
+                                    onTap: widget.dimmed
+                                        ? null
+                                        : () {
+                                            setState(() {
+                                              _selectedVariant = i;
+                                            });
+                                          },
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                                      decoration: BoxDecoration(
+                                        color: isDark
+                                            ? const Color(0xFF1E293B).withValues(alpha: 0.45)
+                                            : const Color(0xFFF1F5F9),
+                                        borderRadius: BorderRadius.circular(999),
+                                        border: Border.all(
+                                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                                          width: 1.0,
+                                        ),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          v.name,
+                                          style: TextStyle(
+                                            fontFamily: 'Tajawal',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            )
+                          else
+                            const Spacer(),
+
+                          const SizedBox(width: 10),
+
+                          // 2. زر (+) مع إطار الستيل الدوار حول حوافه كبقية أزرار التطبيق
+                          Builder(
+                            builder: (btnContext) {
+                              final innerBg = isDark
+                                  ? const Color(0xFF13171F).withValues(alpha: 0.92)
+                                  : Colors.white.withValues(alpha: 0.95);
+
+                              return GestureDetector(
+                                onTap: widget.dimmed
+                                    ? () {
+                                        showModernSnackBar(
+                                          context,
+                                          'تم نفاذ الكمية ⚠️',
+                                          color: Colors.grey,
+                                          icon: Icons.warning_amber_rounded,
+                                        );
+                                      }
+                                    : () async {
+                                        final connectivityResult =
+                                            await Connectivity().checkConnectivity();
+                                        if (!context.mounted) return;
+                                        if (connectivityResult.contains(ConnectivityResult.none)) {
+                                          showModernSnackBar(
+                                            context,
+                                            'يرجى التحقق من اتصال الإنترنت للطلب 🌐',
+                                            color: Colors.redAccent,
+                                            icon: Icons.wifi_off,
+                                          );
+                                          return;
+                                        }
+
+                                        FlyAnimation.run(
+                                          context,
+                                          cartKey: widget.cartKey,
+                                          buttonContext: btnContext,
+                                          imageUrl: widget.item.imageUrl,
+                                          onComplete: () {
+                                            CartProvider.of(context).add(itemToAdd);
+                                          },
+                                        );
+                                      },
+                                child: Container(
+                                  width: 42,
+                                  height: 42,
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.40 : 0.25),
+                                        blurRadius: 10,
+                                        spreadRadius: 1,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(999),
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Positioned.fill(
+                                          child: CustomPaint(
+                                            painter: MetallicRotatingPainter(
+                                              progress: _rotationController.value,
+                                              isDark: isDark,
+                                            ),
+                                          ),
+                                        ),
+                                        Padding(
+                                          padding: const EdgeInsets.all(2.2),
+                                          child: ClipRRect(
+                                            borderRadius: BorderRadius.circular(999),
+                                            child: Container(
+                                              decoration: BoxDecoration(
+                                                color: innerBg,
+                                                shape: BoxShape.circle,
+                                              ),
+                                              child: const Center(
+                                                child: Icon(
+                                                  Icons.add,
+                                                  color: Color(0xFF10B981),
+                                                  size: 24,
+                                                ),
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
                               );
-                            }),
+                            },
                           ),
-                        ),
-                      )
-                    else
-                      const Spacer(),
-
-                    const SizedBox(width: 8),
-
-                    // الزر (+) على اليسار بنفس التصميم والستايل والأنيميشن الموحد بجميع أنحاء التطبيق
-                    CircleAvatar(
-                      backgroundColor: widget.dimmed
-                          ? Colors.grey
-                          : widget.theme.primaryColor,
-                      child: Builder(
-                        builder: (btnContext) => IconButton(
-                          icon: const Icon(Icons.add, color: Colors.white),
-                          onPressed: widget.dimmed
-                              ? () {
-                                  showModernSnackBar(
-                                    context,
-                                    'تم نفاذ الكمية ⚠️',
-                                    color: Colors.grey,
-                                    icon: Icons.warning_amber_rounded,
-                                  );
-                                }
-                              : () async {
-                                  final connectivityResult =
-                                      await Connectivity().checkConnectivity();
-                                  if (!context.mounted) return;
-                                  if (connectivityResult.contains(
-                                    ConnectivityResult.none,
-                                  )) {
-                                    showModernSnackBar(
-                                      context,
-                                      'يرجى التحقق من اتصال الإنترنت للطلب 🌐',
-                                      color: Colors.redAccent,
-                                      icon: Icons.wifi_off,
-                                    );
-                                    return;
-                                  }
-
-                                  FlyAnimation.run(
-                                    context,
-                                    cartKey: widget.cartKey,
-                                    buttonContext: btnContext,
-                                    imageUrl: widget.item.imageUrl,
-                                    onComplete: () {
-                                      CartProvider.of(context).add(itemToAdd);
-                                    },
-                                  );
-                                },
-                        ),
-                      ),
-                    ),
-                  ],
+                        ],
+                      );
+                    },
+                  ),
                 ),
               ],
             ),
