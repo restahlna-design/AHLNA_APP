@@ -276,10 +276,10 @@ class _CategoryContentState extends State<CategoryContent>
                                   child: Container(
                                     width:
                                         MediaQuery.of(context).size.width *
-                                        0.62,
+                                        0.58,
                                     height:
                                         MediaQuery.of(context).size.width *
-                                        0.62,
+                                        0.58,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
                                       boxShadow: [
@@ -515,7 +515,7 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
           top: false,
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(14, 8, 14, 10),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 92),
             decoration: BoxDecoration(
               color: widget.theme.cardColor,
               borderRadius: const BorderRadius.only(
