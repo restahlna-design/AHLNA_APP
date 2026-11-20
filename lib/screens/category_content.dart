@@ -511,295 +511,292 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
       alignment: Alignment.bottomCenter,
       child: Transform.translate(
         offset: widget.cardTranslate,
-        child: SafeArea(
-          top: false,
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 125),
-            decoration: BoxDecoration(
-              color: widget.theme.cardColor,
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(30),
-                topRight: Radius.circular(30),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
+          decoration: BoxDecoration(
+            color: widget.theme.cardColor,
+            borderRadius: const BorderRadius.only(
+              topLeft: Radius.circular(30),
+              topRight: Radius.circular(30),
+            ),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.1),
+                blurRadius: 20,
+                offset: const Offset(0, -5),
               ),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.1),
-                  blurRadius: 20,
-                  offset: const Offset(0, -5),
+            ],
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                widget.item.name,
+                textAlign: TextAlign.center,
+                style: widget.theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: widget.dimmed ? Colors.grey : null,
+                ),
+              ),
+              const SizedBox(height: 3),
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, anim) =>
+                    FadeTransition(opacity: anim, child: child),
+                child: Text(
+                  '${currentPrice % 1 == 0 ? currentPrice.toInt() : currentPrice} IQD',
+                  key: ValueKey<double>(currentPrice),
+                  style: TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.bold,
+                    color: widget.dimmed
+                        ? Colors.grey
+                        : widget.theme.primaryColor,
+                  ),
+                ),
+              ),
+              if (widget.item.description.isNotEmpty) ...[
+                const SizedBox(height: 4),
+                Text(
+                  widget.item.description,
+                  textAlign: TextAlign.center,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    fontFamily: 'Tajawal',
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w600,
+                    height: 1.35,
+                    color: isDark
+                        ? const Color(0xFFE2E8F0)
+                        : const Color(0xFF334155),
+                  ),
                 ),
               ],
-            ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  widget.item.name,
-                  textAlign: TextAlign.center,
-                  style: widget.theme.textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: widget.dimmed ? Colors.grey : null,
-                  ),
-                ),
-                const SizedBox(height: 3),
-                AnimatedSwitcher(
-                  duration: const Duration(milliseconds: 200),
-                  transitionBuilder: (child, anim) =>
-                      FadeTransition(opacity: anim, child: child),
-                  child: Text(
-                    '${currentPrice % 1 == 0 ? currentPrice.toInt() : currentPrice} IQD',
-                    key: ValueKey<double>(currentPrice),
-                    style: TextStyle(
-                      fontSize: 21,
-                      fontWeight: FontWeight.bold,
-                      color: widget.dimmed
-                          ? Colors.grey
-                          : widget.theme.primaryColor,
-                    ),
-                  ),
-                ),
-                if (widget.item.description.isNotEmpty) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    widget.item.description,
-                    textAlign: TextAlign.center,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(
-                      fontFamily: 'Tajawal',
-                      fontSize: 13.5,
-                      fontWeight: FontWeight.w600,
-                      height: 1.35,
-                      color: isDark
-                          ? const Color(0xFFE2E8F0)
-                          : const Color(0xFF334155),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 8),
-                SizedBox(
-                  height: 42,
-                  child: AnimatedBuilder(
-                    animation: _rotationController,
-                    builder: (context, _) {
-                      return Row(
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
-                          // 1. أزرار الأحجام / الخيارات (على اليمين في واجهة RTL)
-                          if (hasVariants)
-                            Expanded(
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                                itemCount: widget.item.variants.length,
-                                separatorBuilder: (_, __) => const SizedBox(width: 8),
-                                itemBuilder: (context, i) {
-                                  final v = widget.item.variants[i];
-                                  final isSelected = i == _selectedVariant;
+              const SizedBox(height: 8),
+              SizedBox(
+                height: 42,
+                child: AnimatedBuilder(
+                  animation: _rotationController,
+                  builder: (context, _) {
+                    return Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // 1. أزرار الأحجام / الخيارات (على اليمين في واجهة RTL)
+                        if (hasVariants)
+                          Expanded(
+                            child: ListView.separated(
+                              scrollDirection: Axis.horizontal,
+                              padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
+                              itemCount: widget.item.variants.length,
+                              separatorBuilder: (_, __) => const SizedBox(width: 8),
+                              itemBuilder: (context, i) {
+                                final v = widget.item.variants[i];
+                                final isSelected = i == _selectedVariant;
 
-                                  final innerBg = isDark
-                                      ? const Color(0xFF13171F).withValues(alpha: 0.90)
-                                      : Colors.white.withValues(alpha: 0.95);
+                                final innerBg = isDark
+                                    ? const Color(0xFF13171F).withValues(alpha: 0.90)
+                                    : Colors.white.withValues(alpha: 0.95);
 
-                                  if (isSelected) {
-                                    return Container(
-                                      decoration: BoxDecoration(
-                                        borderRadius: BorderRadius.circular(999),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.35 : 0.20),
-                                            blurRadius: 10,
-                                            spreadRadius: 1,
-                                            offset: const Offset(0, 2),
-                                          ),
-                                        ],
-                                      ),
-                                      child: ClipRRect(
-                                        borderRadius: BorderRadius.circular(999),
-                                        child: Stack(
-                                          alignment: Alignment.center,
-                                          children: [
-                                            Positioned.fill(
-                                              child: CustomPaint(
-                                                painter: MetallicRotatingPainter(
-                                                  progress: _rotationController.value,
-                                                  isDark: isDark,
-                                                ),
+                                if (isSelected) {
+                                  return Container(
+                                    decoration: BoxDecoration(
+                                      borderRadius: BorderRadius.circular(999),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.35 : 0.20),
+                                          blurRadius: 10,
+                                          spreadRadius: 1,
+                                          offset: const Offset(0, 2),
+                                        ),
+                                      ],
+                                    ),
+                                    child: ClipRRect(
+                                      borderRadius: BorderRadius.circular(999),
+                                      child: Stack(
+                                        alignment: Alignment.center,
+                                        children: [
+                                          Positioned.fill(
+                                            child: CustomPaint(
+                                              painter: MetallicRotatingPainter(
+                                                progress: _rotationController.value,
+                                                isDark: isDark,
                                               ),
                                             ),
-                                            Padding(
-                                              padding: const EdgeInsets.all(2.0),
-                                              child: ClipRRect(
-                                                borderRadius: BorderRadius.circular(999),
-                                                child: Container(
-                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                                                  decoration: BoxDecoration(
-                                                    color: innerBg,
-                                                    borderRadius: BorderRadius.circular(999),
-                                                  ),
-                                                  child: Center(
-                                                    child: Text(
-                                                      v.name,
-                                                      style: TextStyle(
-                                                        fontFamily: 'Tajawal',
-                                                        fontSize: 14,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: isDark ? Colors.white : const Color(0xFF0F172A),
-                                                      ),
+                                          ),
+                                          Padding(
+                                            padding: const EdgeInsets.all(2.0),
+                                            child: ClipRRect(
+                                              borderRadius: BorderRadius.circular(999),
+                                              child: Container(
+                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                                                decoration: BoxDecoration(
+                                                  color: innerBg,
+                                                  borderRadius: BorderRadius.circular(999),
+                                                ),
+                                                child: Center(
+                                                  child: Text(
+                                                    v.name,
+                                                    style: TextStyle(
+                                                      fontFamily: 'Tajawal',
+                                                      fontSize: 14,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: isDark ? Colors.white : const Color(0xFF0F172A),
                                                     ),
                                                   ),
                                                 ),
                                               ),
                                             ),
-                                          ],
-                                        ),
-                                      ),
-                                    );
-                                  }
-
-                                  return InkWell(
-                                    onTap: widget.dimmed
-                                        ? null
-                                        : () {
-                                            setState(() {
-                                              _selectedVariant = i;
-                                            });
-                                          },
-                                    borderRadius: BorderRadius.circular(999),
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                                      decoration: BoxDecoration(
-                                        color: isDark
-                                            ? const Color(0xFF1E293B).withValues(alpha: 0.45)
-                                            : const Color(0xFFF1F5F9),
-                                        borderRadius: BorderRadius.circular(999),
-                                        border: Border.all(
-                                          color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-                                          width: 1.0,
-                                        ),
-                                      ),
-                                      child: Center(
-                                        child: Text(
-                                          v.name,
-                                          style: TextStyle(
-                                            fontFamily: 'Tajawal',
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w600,
-                                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
                                           ),
-                                        ),
+                                        ],
                                       ),
                                     ),
                                   );
-                                },
-                              ),
-                            )
-                          else
-                            const Spacer(),
+                                }
 
-                          const SizedBox(width: 10),
+                                return InkWell(
+                                  onTap: widget.dimmed
+                                      ? null
+                                      : () {
+                                          setState(() {
+                                            _selectedVariant = i;
+                                          });
+                                        },
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                                    decoration: BoxDecoration(
+                                      color: isDark
+                                          ? const Color(0xFF1E293B).withValues(alpha: 0.45)
+                                          : const Color(0xFFF1F5F9),
+                                      borderRadius: BorderRadius.circular(999),
+                                      border: Border.all(
+                                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                                        width: 1.0,
+                                      ),
+                                    ),
+                                    child: Center(
+                                      child: Text(
+                                        v.name,
+                                        style: TextStyle(
+                                          fontFamily: 'Tajawal',
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                );
+                              },
+                            ),
+                          )
+                        else
+                          const Spacer(),
 
-                          // 2. زر (+) مع إطار الستيل الدوار حول حوافه كبقية أزرار التطبيق
-                          Builder(
-                            builder: (btnContext) {
-                              final innerBg = isDark
-                                  ? const Color(0xFF13171F).withValues(alpha: 0.92)
-                                  : Colors.white.withValues(alpha: 0.95);
+                        const SizedBox(width: 10),
 
-                              return GestureDetector(
-                                onTap: widget.dimmed
-                                    ? () {
+                        // 2. زر (+) مع إطار الستيل الدوار حول حوافه كبقية أزرار التطبيق
+                        Builder(
+                          builder: (btnContext) {
+                            final innerBg = isDark
+                                ? const Color(0xFF13171F).withValues(alpha: 0.92)
+                                : Colors.white.withValues(alpha: 0.95);
+
+                            return GestureDetector(
+                              onTap: widget.dimmed
+                                  ? () {
+                                      showModernSnackBar(
+                                        context,
+                                        'تم نفاذ الكمية ⚠️',
+                                        color: Colors.grey,
+                                        icon: Icons.warning_amber_rounded,
+                                      );
+                                    }
+                                  : () async {
+                                      final connectivityResult =
+                                          await Connectivity().checkConnectivity();
+                                      if (!context.mounted) return;
+                                      if (connectivityResult.contains(ConnectivityResult.none)) {
                                         showModernSnackBar(
                                           context,
-                                          'تم نفاذ الكمية ⚠️',
-                                          color: Colors.grey,
-                                          icon: Icons.warning_amber_rounded,
+                                          'يرجى التحقق من اتصال الإنترنت للطلب 🌐',
+                                          color: Colors.redAccent,
+                                          icon: Icons.wifi_off,
                                         );
+                                        return;
                                       }
-                                    : () async {
-                                        final connectivityResult =
-                                            await Connectivity().checkConnectivity();
-                                        if (!context.mounted) return;
-                                        if (connectivityResult.contains(ConnectivityResult.none)) {
-                                          showModernSnackBar(
-                                            context,
-                                            'يرجى التحقق من اتصال الإنترنت للطلب 🌐',
-                                            color: Colors.redAccent,
-                                            icon: Icons.wifi_off,
-                                          );
-                                          return;
-                                        }
 
-                                        FlyAnimation.run(
-                                          context,
-                                          cartKey: widget.cartKey,
-                                          buttonContext: btnContext,
-                                          imageUrl: widget.item.imageUrl,
-                                          onComplete: () {
-                                            CartProvider.of(context).add(itemToAdd);
-                                          },
-                                        );
-                                      },
-                                child: Container(
-                                  width: 42,
-                                  height: 42,
-                                  decoration: BoxDecoration(
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.40 : 0.25),
-                                        blurRadius: 10,
-                                        spreadRadius: 1,
-                                        offset: const Offset(0, 2),
+                                      FlyAnimation.run(
+                                        context,
+                                        cartKey: widget.cartKey,
+                                        buttonContext: btnContext,
+                                        imageUrl: widget.item.imageUrl,
+                                        onComplete: () {
+                                          CartProvider.of(context).add(itemToAdd);
+                                        },
+                                      );
+                                    },
+                              child: Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.40 : 0.25),
+                                      blurRadius: 10,
+                                      spreadRadius: 1,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ],
+                                ),
+                                child: ClipRRect(
+                                  borderRadius: BorderRadius.circular(999),
+                                  child: Stack(
+                                    alignment: Alignment.center,
+                                    children: [
+                                      Positioned.fill(
+                                        child: CustomPaint(
+                                          painter: MetallicRotatingPainter(
+                                            progress: _rotationController.value,
+                                            isDark: isDark,
+                                          ),
+                                        ),
+                                      ),
+                                      Padding(
+                                        padding: const EdgeInsets.all(2.2),
+                                        child: ClipRRect(
+                                          borderRadius: BorderRadius.circular(999),
+                                          child: Container(
+                                            decoration: BoxDecoration(
+                                              color: innerBg,
+                                              shape: BoxShape.circle,
+                                            ),
+                                            child: const Center(
+                                              child: Icon(
+                                                Icons.add,
+                                                color: Color(0xFF10B981),
+                                                size: 24,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
                                       ),
                                     ],
                                   ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(999),
-                                    child: Stack(
-                                      alignment: Alignment.center,
-                                      children: [
-                                        Positioned.fill(
-                                          child: CustomPaint(
-                                            painter: MetallicRotatingPainter(
-                                              progress: _rotationController.value,
-                                              isDark: isDark,
-                                            ),
-                                          ),
-                                        ),
-                                        Padding(
-                                          padding: const EdgeInsets.all(2.2),
-                                          child: ClipRRect(
-                                            borderRadius: BorderRadius.circular(999),
-                                            child: Container(
-                                              decoration: BoxDecoration(
-                                                color: innerBg,
-                                                shape: BoxShape.circle,
-                                              ),
-                                              child: const Center(
-                                                child: Icon(
-                                                  Icons.add,
-                                                  color: Color(0xFF10B981),
-                                                  size: 24,
-                                                ),
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
                                 ),
-                              );
-                            },
-                          ),
-                        ],
-                      );
-                    },
-                  ),
+                              ),
+                            );
+                          },
+                        ),
+                      ],
+                    );
+                  },
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),

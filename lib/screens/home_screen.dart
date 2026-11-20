@@ -1492,6 +1492,7 @@ class _CategoryPageState extends State<_CategoryPage>
     ThemeData theme,
     Offset cardTranslate,
   ) {
+    print('DEBUG_HOME_CARD: item=${item.name}');
     return Align(
       alignment: Alignment.bottomCenter,
       child: Transform.translate(
