@@ -6,7 +6,7 @@ def package():
     base_dir = r"D:\AHLNA-APP - Copy"
     desktop_zip = r"C:\Users\kazaz\Desktop\ahlna.zip"
     d_zip = r"D:\ahlna.zip"
-    temp_dir = r"D:\AHLNANEW - Copy\temp_package_ahlna"
+    temp_dir = r"D:\AHLNA-APP - Copy\temp_package_ahlna"
 
     if os.path.exists(temp_dir):
         shutil.rmtree(temp_dir)
@@ -107,7 +107,16 @@ def package():
                     zf.write(full_path, rel_path)
         print(f"Finished: {target_zip} (Size: {os.path.getsize(target_zip)} bytes)")
 
-    # Update extracted desktop folder as well
+    # Update extracted folders (D:\ahlna and Desktop)
+    d_extracted = r"D:\ahlna"
+    try:
+        if os.path.exists(d_extracted):
+            shutil.rmtree(d_extracted)
+        shutil.copytree(root_folder, d_extracted)
+        print(f"Copied extracted folder to {d_extracted}!")
+    except Exception as e:
+        print(f"Error copying to {d_extracted}: {e}")
+
     desktop_extracted = r"C:\Users\kazaz\Desktop\ahlna"
     try:
         shutil.copytree(root_folder, desktop_extracted, dirs_exist_ok=True)

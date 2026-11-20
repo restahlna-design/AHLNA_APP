@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class FoodVariant {
   final String name;
   final double price;
@@ -75,9 +77,19 @@ class FoodItem {
 
   factory FoodItem.fromJson(Map<String, dynamic> json) {
     List<FoodVariant> parsedVariants = [];
-    final rawVariants = json['variants'];
+    var rawVariants = json['variants'];
+    if (rawVariants is String && rawVariants.trim().isNotEmpty) {
+      try {
+        rawVariants = jsonDecode(rawVariants);
+      } catch (_) {}
+    }
     if (rawVariants is List) {
       for (var v in rawVariants) {
+        if (v is String && v.trim().isNotEmpty) {
+          try {
+            v = jsonDecode(v);
+          } catch (_) {}
+        }
         if (v is Map) {
           try {
             parsedVariants.add(

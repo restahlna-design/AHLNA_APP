@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:connectivity_plus/connectivity_plus.dart';
 import '../models/food_item.dart';
 import '../core/ui_utils.dart';
 import '../core/cart.dart';
@@ -560,48 +561,19 @@ class _FoodDetailCardState extends State<_FoodDetailCard> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // الزر (+) بنفس التصميم والانميشن المتطابق تماماً مع باقي التطبيق
-                    Builder(
-                      builder: (btnContext) => IconButton(
-                        padding: EdgeInsets.zero,
-                        constraints: const BoxConstraints(),
-                        onPressed: widget.dimmed
-                            ? null
-                            : () {
-                                FlyAnimation.run(
-                                  context,
-                                  cartKey: widget.cartKey,
-                                  buttonContext: btnContext,
-                                  imageUrl: widget.item.imageUrl,
-                                  onComplete: () {
-                                    CartProvider.of(context).add(itemToAdd);
-                                  },
-                                );
-                              },
-                        icon: Icon(
-                          Icons.add_circle,
-                          color: widget.dimmed
-                              ? Colors.grey
-                              : widget.theme.primaryColor,
-                          size: 38,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    // أزرار الأحجام / الخيارات التفاعلية
+                    // أزرار الأحجام / الخيارات التفاعلية (على اليمين في واجهة التطبيق العربية RTL)
                     if (hasVariants)
                       Expanded(
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
-                          reverse: true,
                           child: Row(
-                            mainAxisAlignment: MainAxisAlignment.end,
+                            mainAxisAlignment: MainAxisAlignment.start,
                             children: List.generate(widget.item.variants.length, (i) {
                               final v = widget.item.variants[i];
                               final isSelected = i == _selectedVariant;
 
                               return Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 4),
+                                padding: const EdgeInsets.only(left: 8),
                                 child: InkWell(
                                   onTap: widget.dimmed
                                       ? null
@@ -637,7 +609,7 @@ class _FoodDetailCardState extends State<_FoodDetailCard> {
                                       boxShadow: isSelected
                                           ? [
                                               BoxShadow(
-                                                color: widget.theme.primaryColor.withValues(alpha: 0.18),
+                                                color: widget.theme.primaryColor.withValues(alpha: 0.22),
                                                 blurRadius: 8,
                                                 offset: const Offset(0, 3),
                                               ),
@@ -675,7 +647,56 @@ class _FoodDetailCardState extends State<_FoodDetailCard> {
                         ),
                       )
                     else
-                      const SizedBox.shrink(),
+                      const Spacer(),
+
+                    const SizedBox(width: 8),
+
+                    // الزر (+) على اليسار بنفس التصميم والستايل والأنيميشن الموحد بجميع أنحاء التطبيق
+                    CircleAvatar(
+                      backgroundColor: widget.dimmed
+                          ? Colors.grey
+                          : widget.theme.primaryColor,
+                      child: Builder(
+                        builder: (btnContext) => IconButton(
+                          icon: const Icon(Icons.add, color: Colors.white),
+                          onPressed: widget.dimmed
+                              ? () {
+                                  showModernSnackBar(
+                                    context,
+                                    'تم نفاذ الكمية ⚠️',
+                                    color: Colors.grey,
+                                    icon: Icons.warning_amber_rounded,
+                                  );
+                                }
+                              : () async {
+                                  final connectivityResult =
+                                      await Connectivity().checkConnectivity();
+                                  if (!context.mounted) return;
+                                  if (connectivityResult.contains(
+                                    ConnectivityResult.none,
+                                  )) {
+                                    showModernSnackBar(
+                                      context,
+                                      'يرجى التحقق من اتصال الإنترنت للطلب 🌐',
+                                      color: Colors.redAccent,
+                                      icon: Icons.wifi_off,
+                                    );
+                                    return;
+                                  }
+
+                                  FlyAnimation.run(
+                                    context,
+                                    cartKey: widget.cartKey,
+                                    buttonContext: btnContext,
+                                    imageUrl: widget.item.imageUrl,
+                                    onComplete: () {
+                                      CartProvider.of(context).add(itemToAdd);
+                                    },
+                                  );
+                                },
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               ],
