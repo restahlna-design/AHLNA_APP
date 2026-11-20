@@ -521,7 +521,7 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
       child: Transform.translate(
         offset: widget.cardTranslate,
         child: Padding(
-          padding: const EdgeInsets.only(bottom: 92, left: 14, right: 14),
+          padding: const EdgeInsets.only(bottom: 12, left: 14, right: 14),
           child: Container(
             width: double.infinity,
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
