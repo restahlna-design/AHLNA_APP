@@ -80,15 +80,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (profile.phone.isNotEmpty && profile.phone != _lastPhone) {
       _lastPhone = profile.phone;
       _ordersSub?.cancel();
-      _ordersSub = orderRepo.streamCustomerOrders(profile.phone).listen((orders) {
-        if (mounted) setState(() => _activeOrders = orders);
-      });
+      _ordersSub = orderRepo.streamCustomerOrders(profile.phone).listen(
+        (orders) {
+          if (mounted) setState(() => _activeOrders = orders);
+        },
+        onError: (e) => print('⚠️ streamCustomerOrders error: $e'),
+      );
     }
   }
 
   @override
   void initState() {
     super.initState();
+    // 1. Initial fast local load (0ms startup, avoids infinite loading spinner)
+    _allCategories = catRepo.getCachedCategories();
+    _parentCategories = _allCategories.where((c) => c.parentId == null).toList();
+    if (_parentCategories.isNotEmpty) {
+      _selectedParent = _parentCategories.first;
+      final children = _allCategories.where((c) => c.parentId == _selectedParent!.id).toList();
+      if (children.isNotEmpty) {
+        _selectedChildForParent[_selectedParent!.id] = children.first;
+      }
+      _tabController = TabController(
+        length: _parentCategories.length,
+        vsync: this,
+      );
+      _loadingCategories = false;
+    }
+    _allFoodItems = repo.getCachedItems();
+
     _initializeApp();
     _loadCategories();
     _subscribeCategories();
@@ -104,22 +124,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Future<void> _loadCategories() async {
     try {
       final cats = await catRepo.getAllCategories();
-      if (mounted) {
+      if (mounted && cats.isNotEmpty) {
         setState(() {
-          if (cats.isEmpty) {
-            // Fallback
-            _allCategories = [
-              const CategoryModel(
-                id: 1,
-                nameEn: 'Lahm Bi Ajeen',
-                nameAr: 'لحم بعجين',
-              ),
-              const CategoryModel(id: 2, nameEn: 'Pizza', nameAr: 'بيتزا'),
-              const CategoryModel(id: 3, nameEn: 'Drinks', nameAr: 'مشروبات'),
-            ];
-          } else {
-            _allCategories = cats;
+          _allCategories = cats;
+          _parentCategories = _allCategories
+              .where((c) => c.parentId == null)
+              .toList();
+          if (_tabController == null || _tabController!.length != _parentCategories.length) {
+            _tabController?.dispose();
+            _tabController = TabController(
+              length: _parentCategories.length,
+              vsync: this,
+            );
           }
+          _loadingCategories = false;
+          if (_selectedParent == null && _parentCategories.isNotEmpty) {
+            _selectedParent = _parentCategories.first;
+          }
+          final p = _selectedParent;
+          if (p != null) {
+            final children = _allCategories
+                .where((c) => c.parentId == p.id)
+                .toList();
+            if (children.isNotEmpty &&
+                _selectedChildForParent[p.id] == null) {
+              _selectedChildForParent[p.id] = children.first;
+            }
+          }
+        });
+      }
+    } catch (e) {
+      print('Error loading categories: $e');
+      if (mounted && _tabController == null) {
+        setState(() {
+          _allCategories = catRepo.getCachedCategories();
           _parentCategories = _allCategories
               .where((c) => c.parentId == null)
               .toList();
@@ -128,48 +166,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             vsync: this,
           );
           _loadingCategories = false;
-          if (_selectedParent == null && _parentCategories.isNotEmpty) {
-            _selectedParent = _parentCategories.first;
-            final children = _allCategories
-                .where((c) => c.parentId == _selectedParent!.id)
-                .toList();
-            if (children.isNotEmpty &&
-                _selectedChildForParent[_selectedParent!.id] == null) {
-              _selectedChildForParent[_selectedParent!.id] = children.first;
-            }
-          }
-        });
-      }
-    } catch (e) {
-      print('Error loading categories: $e');
-      // Fallback
-      if (mounted) {
-        setState(() {
-          _allCategories = [
-            const CategoryModel(
-              id: 1,
-              nameEn: 'Lahm Bi Ajeen',
-              nameAr: 'لحم بعجين',
-            ),
-            const CategoryModel(id: 2, nameEn: 'Pizza', nameAr: 'بيتزا'),
-            const CategoryModel(id: 3, nameEn: 'Drinks', nameAr: 'مشروبات'),
-          ];
-          _parentCategories = _allCategories;
-          _tabController = TabController(
-            length: _parentCategories.length,
-            vsync: this,
-          );
-          _loadingCategories = false;
-          if (_selectedParent == null && _parentCategories.isNotEmpty) {
-            _selectedParent = _parentCategories.first;
-            final children = _allCategories
-                .where((c) => c.parentId == _selectedParent!.id)
-                .toList();
-            if (children.isNotEmpty &&
-                _selectedChildForParent[_selectedParent!.id] == null) {
-              _selectedChildForParent[_selectedParent!.id] = children.first;
-            }
-          }
         });
       }
     }
@@ -178,12 +174,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   void _subscribeCategories() {
     _catStream?.cancel();
     _catStream = catRepo.streamCategories().listen((cats) {
-      if (!mounted) return;
+      if (!mounted || cats.isEmpty) return;
       setState(() {
         _allCategories = cats;
         _parentCategories = _allCategories
             .where((c) => c.parentId == null)
             .toList();
+        if (_tabController == null || _tabController!.length != _parentCategories.length) {
+          _tabController?.dispose();
+          _tabController = TabController(
+            length: _parentCategories.length,
+            vsync: this,
+          );
+        }
+        _loadingCategories = false;
         if (_selectedParent == null && _parentCategories.isNotEmpty) {
           _selectedParent = _parentCategories.first;
         }
@@ -220,20 +224,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   void _subscribeFoodItems() {
     _foodStream?.cancel();
-    _foodStream = repo.streamAllFoodItems().listen((items) {
-      if (!mounted) return;
-      if (items.isNotEmpty) {
-        setState(() {
-          _allFoodItems = items;
-        });
-        // Push fresh filtered data to every active category stream controller.
-        _catStreamControllers.forEach((key, ctrl) {
-          if (!ctrl.isClosed) {
-            ctrl.add(repo.filterByCategory(items, key));
-          }
-        });
-      }
-    });
+    _foodStream = repo.streamAllFoodItems().listen(
+      (items) {
+        if (!mounted) return;
+        if (items.isNotEmpty) {
+          setState(() {
+            _allFoodItems = items;
+          });
+          // Push fresh filtered data to every active category stream controller.
+          _catStreamControllers.forEach((key, ctrl) {
+            if (!ctrl.isClosed) {
+              ctrl.add(repo.filterByCategory(items, key));
+            }
+          });
+        }
+      },
+      onError: (e) => print('⚠️ _foodStream error: $e'),
+    );
   }
 
   /// Returns (or creates) a persistent broadcast stream for a category key.
@@ -283,12 +290,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         await _offersBox.put('offer_link', link);
       }
 
-      _offerSub = _offersRepo.liveLink().listen((l) {
-        if (l != null) {
-          _offerLink.value = l;
-          _offersBox.put('offer_link', l);
-        }
-      });
+      _offerSub = _offersRepo.liveLink().listen(
+        (l) {
+          if (l != null && mounted) {
+            _offerLink.value = l;
+            _offersBox.put('offer_link', l);
+          }
+        },
+        onError: (e) => print('⚠️ Offers liveLink error: $e'),
+      );
     } catch (e) {
       // في حال الخطأ نُبقي القيمة الحالية كما هي
     }
@@ -537,13 +547,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final theme = Theme.of(context);
     // final isDark = theme.brightness == Brightness.dark; // Removed unused variable
 
-    if (_loadingCategories || _tabController == null) {
-      return Scaffold(
-        backgroundColor: theme.scaffoldBackgroundColor,
-        body: Center(
-          child: CircularProgressIndicator(color: theme.primaryColor),
-        ),
+    if (_tabController == null) {
+      final initialCats = catRepo.getCachedCategories();
+      _allCategories = initialCats;
+      _parentCategories = initialCats.where((c) => c.parentId == null).toList();
+      _selectedParent ??= _parentCategories.isNotEmpty ? _parentCategories.first : null;
+      _tabController = TabController(
+        length: _parentCategories.isNotEmpty ? _parentCategories.length : 1,
+        vsync: this,
       );
+      _loadingCategories = false;
     }
 
     final cart = CartProvider.of(context);

@@ -41,11 +41,29 @@ class FoodRepository {
     }).toList();
   }
 
+  List<FoodItem> getCachedItems() {
+    final box = _box;
+    if (box != null) {
+      final cached = box.get('__ALL__');
+      if (cached != null) {
+        try {
+          final items = _parseItems(List.from(cached));
+          if (items.isNotEmpty) return items;
+        } catch (_) {}
+      }
+    }
+    return _defaultFallbackItems;
+  }
+
   Future<List<FoodItem>> fetchByCategory(String category) async {
     final c = _c;
     if (c != null) {
       try {
-        final res = await c.from(table).select().order('created_at', ascending: false);
+        final res = await c
+            .from(table)
+            .select()
+            .order('created_at', ascending: false)
+            .timeout(const Duration(seconds: 4));
         final items = _parseItems(res as List?);
         if (items.isNotEmpty) {
           // Cache the results
@@ -74,7 +92,7 @@ class FoodRepository {
       }
     }
 
-    return [];
+    return filterByCategory(_defaultFallbackItems, category);
   }
 
   Future<List<FoodItem>> fetchByCategoryFresh(String category) =>
@@ -84,6 +102,34 @@ class FoodRepository {
   static const List<FoodItem> _defaultFallbackItems = [
     FoodItem(
       id: '1765207284918',
+      name: 'مارغريتا كبير',
+      price: 3000.0,
+      description: 'بيتزا مارغريتا شهية مع الجبن والمكونات الطازجة',
+      imageUrl: 'https://boylzidmvvldouxtrpiv.supabase.co/storage/v1/object/public/food_images/pizza.png',
+      category: 'مارغريتا',
+      isAvailable: true,
+      variants: [
+        FoodVariant(name: 'صغير', price: 3000.0),
+        FoodVariant(name: 'وسط', price: 4000.0),
+        FoodVariant(name: 'كبير', price: 6000.0),
+      ],
+    ),
+    FoodItem(
+      id: '1765197555135',
+      name: 'بيتزا لحم كبير',
+      price: 5000.0,
+      description: 'بيتزا لحم مع الخضار والجبن الفاخر',
+      imageUrl: 'https://boylzidmvvldouxtrpiv.supabase.co/storage/v1/object/public/food_images/pizza_meat.png',
+      category: 'بيتزا لحم',
+      isAvailable: true,
+      variants: [
+        FoodVariant(name: 'صغير', price: 9000.0),
+        FoodVariant(name: 'وسط', price: 6000.0),
+        FoodVariant(name: 'كبير', price: 5000.0),
+      ],
+    ),
+    FoodItem(
+      id: '1765197555136',
       name: 'بيتزا دجاج وسط',
       price: 4500.0,
       description: 'بيتزا دجاج شهية مع الجبن والمكونات الطازجة',
@@ -92,13 +138,26 @@ class FoodRepository {
       isAvailable: true,
     ),
     FoodItem(
-      id: '1765197555135',
-      name: 'بيتزا لحم كبير',
-      price: 7000.0,
-      description: 'بيتزا لحم مع الخضار والجبن الفاخر',
+      id: '1765197555137',
+      name: 'لحم بالعجين اعتيادي',
+      price: 1000.0,
+      description: 'طعم عراقي أصيل من قلب داقوق، محضر بأجود أنواع اللحوم',
       imageUrl: 'https://boylzidmvvldouxtrpiv.supabase.co/storage/v1/object/public/food_images/pizza_meat.png',
-      category: 'بيتزا لحم',
+      category: 'لحم بعجين',
       isAvailable: true,
+    ),
+    FoodItem(
+      id: '1765197555138',
+      name: 'بركَر هوم',
+      price: 4000.0,
+      description: 'برجر لحم فاخر محضر طازجاً يومياً',
+      imageUrl: 'https://boylzidmvvldouxtrpiv.supabase.co/storage/v1/object/public/food_images/pizza.png',
+      category: 'بركَر',
+      isAvailable: true,
+      variants: [
+        FoodVariant(name: 'وجبه', price: 5500.0),
+        FoodVariant(name: 'عادي', price: 4000.0),
+      ],
     ),
   ];
 
@@ -106,7 +165,11 @@ class FoodRepository {
     final c = _c;
     if (c != null) {
       try {
-        final res = await c.from(table).select().order('created_at', ascending: false);
+        final res = await c
+            .from(table)
+            .select()
+            .order('created_at', ascending: false)
+            .timeout(const Duration(seconds: 4));
         final items = _parseItems(res as List?);
         if (items.isNotEmpty) {
           // Cache the results
@@ -137,7 +200,10 @@ class FoodRepository {
 
   Stream<List<FoodItem>> streamAllFoodItems() {
     return Stream<List<FoodItem>>.multi((controller) async {
-      List<FoodItem> currentItems = [];
+      List<FoodItem> currentItems = getCachedItems();
+      if (!controller.isClosed) {
+        controller.add(currentItems);
+      }
 
       try {
         final initial = await fetchAllFresh();

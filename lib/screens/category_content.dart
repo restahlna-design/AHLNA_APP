@@ -71,16 +71,25 @@ class _CategoryContentState extends State<CategoryContent>
 
   void _subscribeStream(Stream<List<FoodItem>> stream) {
     _streamSub?.cancel();
-    _streamSub = stream.listen((data) {
-      if (mounted) {
-        if (data.isNotEmpty || _items.isEmpty) {
+    _streamSub = stream.listen(
+      (data) {
+        if (mounted) {
+          if (data.isNotEmpty || _items.isEmpty) {
+            setState(() {
+              _items = data;
+              _loaded = true;
+            });
+          }
+        }
+      },
+      onError: (e) {
+        if (mounted) {
           setState(() {
-            _items = data;
             _loaded = true;
           });
         }
-      }
-    });
+      },
+    );
   }
 
   @override

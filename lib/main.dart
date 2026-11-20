@@ -22,13 +22,9 @@ Future<void> main() async {
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   await Hive.initFlutter();
-  final foodBox = await Hive.openBox('food_cache_v3');
-  final offersBox = await Hive.openBox('offers_cache');
-  try {
-    await foodBox
-        .clear(); // مسح الكاش القديم فوراً لضمان الجلب المباشر واللحظي من قاعدة البيانات
-    await offersBox.clear();
-  } catch (_) {}
+  await Hive.openBox('food_cache_v3');
+  await Hive.openBox('offers_cache');
+  await Hive.openBox('categories_cache');
 
   await SupabaseManager.init();
   final client = SupabaseManager.client;
