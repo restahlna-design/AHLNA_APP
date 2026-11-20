@@ -515,7 +515,7 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
           top: false,
           child: Container(
             width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(18, 12, 18, 92),
+            padding: const EdgeInsets.fromLTRB(18, 12, 18, 125),
             decoration: BoxDecoration(
               color: widget.theme.cardColor,
               borderRadius: const BorderRadius.only(
