@@ -574,11 +574,15 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
                 ),
               ],
               const SizedBox(height: 8),
-              SizedBox(
-                height: 42,
+              // --- صف الأزرار (أحجام + زر إضافة) مع أنيميشن الحواف ---
+              // ConstrainedBox بدل SizedBox الصارم لتجنب القص في وضع release
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 42),
                 child: AnimatedBuilder(
                   animation: _rotationController,
                   builder: (context, _) {
+                    // نأخذ قيمة progress مرة واحدة لضمان التناسق
+                    final progress = _rotationController.value;
                     return Row(
                       crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
@@ -619,10 +623,12 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
                                           alignment: Alignment.center,
                                           children: [
                                             Positioned.fill(
-                                              child: CustomPaint(
-                                                painter: MetallicRotatingPainter(
-                                                  progress: _rotationController.value,
-                                                  isDark: isDark,
+                                              child: RepaintBoundary(
+                                                child: CustomPaint(
+                                                  painter: MetallicRotatingPainter(
+                                                    progress: progress,
+                                                    isDark: isDark,
+                                                  ),
                                                 ),
                                               ),
                                             ),
@@ -654,7 +660,7 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
                                       ),
                                     );
                                   } else {
-                                    pill = InkWell(
+                                    pill = GestureDetector(
                                       onTap: widget.dimmed
                                           ? null
                                           : () {
@@ -662,7 +668,6 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
                                                 _selectedVariant = i;
                                               });
                                             },
-                                      borderRadius: BorderRadius.circular(999),
                                       child: Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
                                         decoration: BoxDecoration(
@@ -743,38 +748,38 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
                                         },
                                       );
                                     },
-                              child: Container(
+                              child: SizedBox(
                                 width: 42,
                                 height: 42,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  boxShadow: [
-                                    BoxShadow(
-                                      color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.40 : 0.25),
-                                      blurRadius: 10,
-                                      spreadRadius: 1,
-                                      offset: const Offset(0, 2),
-                                    ),
-                                  ],
-                                ),
-                                child: ClipRRect(
-                                  borderRadius: BorderRadius.circular(999),
-                                  child: Stack(
-                                    alignment: Alignment.center,
-                                    children: [
-                                      Positioned.fill(
-                                        child: CustomPaint(
-                                          painter: MetallicRotatingPainter(
-                                            progress: _rotationController.value,
-                                            isDark: isDark,
+                                child: DecoratedBox(
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.40 : 0.25),
+                                        blurRadius: 10,
+                                        spreadRadius: 1,
+                                        offset: const Offset(0, 2),
+                                      ),
+                                    ],
+                                  ),
+                                  child: ClipOval(
+                                    child: Stack(
+                                      alignment: Alignment.center,
+                                      children: [
+                                        Positioned.fill(
+                                          child: RepaintBoundary(
+                                            child: CustomPaint(
+                                              painter: MetallicRotatingPainter(
+                                                progress: progress,
+                                                isDark: isDark,
+                                              ),
+                                            ),
                                           ),
                                         ),
-                                      ),
-                                      Padding(
-                                        padding: const EdgeInsets.all(2.2),
-                                        child: ClipRRect(
-                                          borderRadius: BorderRadius.circular(999),
-                                          child: Container(
+                                        Padding(
+                                          padding: const EdgeInsets.all(2.2),
+                                          child: DecoratedBox(
                                             decoration: BoxDecoration(
                                               color: innerBg,
                                               shape: BoxShape.circle,
@@ -788,8 +793,8 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
                                             ),
                                           ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
                                 ),
                               ),

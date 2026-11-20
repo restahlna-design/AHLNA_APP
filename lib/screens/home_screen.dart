@@ -1794,12 +1794,13 @@ class _RotatingMetallicSearchBarState extends State<_RotatingMetallicSearchBar>
             child: Stack(
               alignment: Alignment.center,
               children: [
-                // 1. Rotating Metallic Conic Gradient
                 Positioned.fill(
-                  child: CustomPaint(
-                    painter: _SearchMetallicRotatingPainter(
-                      progress: _rotationController.value,
-                      isDark: isDark,
+                  child: RepaintBoundary(
+                    child: CustomPaint(
+                      painter: _SearchMetallicRotatingPainter(
+                        progress: _rotationController.value,
+                        isDark: isDark,
+                      ),
                     ),
                   ),
                 ),
@@ -1883,7 +1884,7 @@ class _SearchMetallicRotatingPainter extends CustomPainter {
 
   @override
   void paint(Canvas canvas, Size size) {
-    if (size.width == 0 || size.height == 0) return;
+    if (size.width <= 0 || size.height <= 0) return;
 
     final rect = Offset.zero & size;
 
@@ -2035,10 +2036,12 @@ class _CategoryPillTabState extends State<_CategoryPillTab>
                 alignment: Alignment.center,
                 children: [
                   Positioned.fill(
-                    child: CustomPaint(
-                      painter: _SearchMetallicRotatingPainter(
-                        progress: _rotationController.value,
-                        isDark: widget.isDark,
+                    child: RepaintBoundary(
+                      child: CustomPaint(
+                        painter: _SearchMetallicRotatingPainter(
+                          progress: _rotationController.value,
+                          isDark: widget.isDark,
+                        ),
                       ),
                     ),
                   ),
