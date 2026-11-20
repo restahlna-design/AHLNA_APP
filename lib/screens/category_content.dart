@@ -461,7 +461,7 @@ class _FoodDetailCard extends StatefulWidget {
 }
 
 class _FoodDetailCardState extends State<_FoodDetailCard>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   int _selectedVariant = 0;
   late final AnimationController _rotationController;
 
@@ -511,26 +511,25 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
       alignment: Alignment.bottomCenter,
       child: Transform.translate(
         offset: widget.cardTranslate,
-        child: Container(
-          width: double.infinity,
-          padding: const EdgeInsets.fromLTRB(16, 8, 16, 14),
-          decoration: BoxDecoration(
-            color: widget.theme.cardColor,
-            borderRadius: const BorderRadius.only(
-              topLeft: Radius.circular(30),
-              topRight: Radius.circular(30),
+        child: Padding(
+          padding: const EdgeInsets.only(bottom: 92, left: 14, right: 14),
+          child: Container(
+            width: double.infinity,
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 14),
+            decoration: BoxDecoration(
+              color: widget.theme.cardColor,
+              borderRadius: BorderRadius.circular(28),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 4),
+                ),
+              ],
             ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.1),
-                blurRadius: 20,
-                offset: const Offset(0, -5),
-              ),
-            ],
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
               Text(
                 widget.item.name,
                 textAlign: TextAlign.center,
@@ -586,58 +585,60 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
                         // 1. أزرار الأحجام / الخيارات (على اليمين في واجهة RTL)
                         if (hasVariants)
                           Expanded(
-                            child: ListView.separated(
+                            child: SingleChildScrollView(
                               scrollDirection: Axis.horizontal,
+                              physics: const BouncingScrollPhysics(),
                               padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
-                              itemCount: widget.item.variants.length,
-                              separatorBuilder: (_, __) => const SizedBox(width: 8),
-                              itemBuilder: (context, i) {
-                                final v = widget.item.variants[i];
-                                final isSelected = i == _selectedVariant;
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: List.generate(widget.item.variants.length, (i) {
+                                  final v = widget.item.variants[i];
+                                  final isSelected = i == _selectedVariant;
 
-                                final innerBg = isDark
-                                    ? const Color(0xFF13171F).withValues(alpha: 0.90)
-                                    : Colors.white.withValues(alpha: 0.95);
+                                  final innerBg = isDark
+                                      ? const Color(0xFF13171F).withValues(alpha: 0.90)
+                                      : Colors.white.withValues(alpha: 0.95);
 
-                                if (isSelected) {
-                                  return Container(
-                                    decoration: BoxDecoration(
-                                      borderRadius: BorderRadius.circular(999),
-                                      boxShadow: [
-                                        BoxShadow(
-                                          color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.35 : 0.20),
-                                          blurRadius: 10,
-                                          spreadRadius: 1,
-                                          offset: const Offset(0, 2),
-                                        ),
-                                      ],
-                                    ),
-                                    child: ClipRRect(
-                                      borderRadius: BorderRadius.circular(999),
-                                      child: Stack(
-                                        alignment: Alignment.center,
-                                        children: [
-                                          Positioned.fill(
-                                            child: CustomPaint(
-                                              painter: MetallicRotatingPainter(
-                                                progress: _rotationController.value,
-                                                isDark: isDark,
+                                  Widget pill;
+                                  if (isSelected) {
+                                    pill = Container(
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(999),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: const Color(0xFF10B981).withValues(alpha: isDark ? 0.35 : 0.20),
+                                            blurRadius: 10,
+                                            spreadRadius: 1,
+                                            offset: const Offset(0, 2),
+                                          ),
+                                        ],
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(999),
+                                        child: Stack(
+                                          alignment: Alignment.center,
+                                          children: [
+                                            Positioned.fill(
+                                              child: CustomPaint(
+                                                painter: MetallicRotatingPainter(
+                                                  progress: _rotationController.value,
+                                                  isDark: isDark,
+                                                ),
                                               ),
                                             ),
-                                          ),
-                                          Padding(
-                                            padding: const EdgeInsets.all(2.0),
-                                            child: ClipRRect(
-                                              borderRadius: BorderRadius.circular(999),
-                                              child: Container(
-                                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                                                decoration: BoxDecoration(
-                                                  color: innerBg,
-                                                  borderRadius: BorderRadius.circular(999),
-                                                ),
-                                                child: Center(
+                                            Padding(
+                                              padding: const EdgeInsets.all(2.0),
+                                              child: ClipRRect(
+                                                borderRadius: BorderRadius.circular(999),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                                                  decoration: BoxDecoration(
+                                                    color: innerBg,
+                                                    borderRadius: BorderRadius.circular(999),
+                                                  ),
                                                   child: Text(
                                                     v.name,
+                                                    textAlign: TextAlign.center,
                                                     style: TextStyle(
                                                       fontFamily: 'Tajawal',
                                                       fontSize: 14,
@@ -648,48 +649,52 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
                                                 ),
                                               ),
                                             ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  );
-                                }
-
-                                return InkWell(
-                                  onTap: widget.dimmed
-                                      ? null
-                                      : () {
-                                          setState(() {
-                                            _selectedVariant = i;
-                                          });
-                                        },
-                                  borderRadius: BorderRadius.circular(999),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
-                                    decoration: BoxDecoration(
-                                      color: isDark
-                                          ? const Color(0xFF1E293B).withValues(alpha: 0.45)
-                                          : const Color(0xFFF1F5F9),
-                                      borderRadius: BorderRadius.circular(999),
-                                      border: Border.all(
-                                        color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
-                                        width: 1.0,
-                                      ),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        v.name,
-                                        style: TextStyle(
-                                          fontFamily: 'Tajawal',
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                          ],
                                         ),
                                       ),
-                                    ),
-                                  ),
-                                );
-                              },
+                                    );
+                                  } else {
+                                    pill = InkWell(
+                                      onTap: widget.dimmed
+                                          ? null
+                                          : () {
+                                              setState(() {
+                                                _selectedVariant = i;
+                                              });
+                                            },
+                                      borderRadius: BorderRadius.circular(999),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 7),
+                                        decoration: BoxDecoration(
+                                          color: isDark
+                                              ? const Color(0xFF1E293B).withValues(alpha: 0.45)
+                                              : const Color(0xFFF1F5F9),
+                                          borderRadius: BorderRadius.circular(999),
+                                          border: Border.all(
+                                            color: isDark ? Colors.grey.shade800 : Colors.grey.shade300,
+                                            width: 1.0,
+                                          ),
+                                        ),
+                                        child: Text(
+                                          v.name,
+                                          textAlign: TextAlign.center,
+                                          style: TextStyle(
+                                            fontFamily: 'Tajawal',
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark ? Colors.grey.shade400 : Colors.grey.shade600,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }
+
+                                  return Padding(
+                                    padding: EdgeInsets.only(left: i == widget.item.variants.length - 1 ? 0 : 8),
+                                    child: pill,
+                                  );
+                                }),
+                              ),
                             ),
                           )
                         else
@@ -800,6 +805,7 @@ class _FoodDetailCardState extends State<_FoodDetailCard>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

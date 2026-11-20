@@ -7,7 +7,7 @@ class FoodRepository {
   static const table = 'food_items';
 
   SupabaseClient? get _c => SupabaseManager.client;
-  Box? get _box => Hive.isBoxOpen('food_cache_v2') ? Hive.box('food_cache_v2') : null;
+  Box? get _box => Hive.isBoxOpen('food_cache_v3') ? Hive.box('food_cache_v3') : null;
 
   List<FoodItem> _parseItems(List<dynamic>? rows) {
     if (rows == null) return [];

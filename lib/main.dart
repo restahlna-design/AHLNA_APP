@@ -22,7 +22,7 @@ Future<void> main() async {
   FlutterNativeSplash.preserve(widgetsBinding: widgetsBinding);
 
   await Hive.initFlutter();
-  final foodBox = await Hive.openBox('food_cache_v2');
+  final foodBox = await Hive.openBox('food_cache_v3');
   final offersBox = await Hive.openBox('offers_cache');
   try {
     await foodBox

@@ -207,6 +207,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         setState(() {
           _allFoodItems = items;
         });
+        _catStreamControllers.forEach((key, ctrl) {
+          if (!ctrl.isClosed) {
+            ctrl.add(repo.filterByCategory(items, key));
+          }
+        });
       }
     } catch (e) {
       print('Error loading food items: $e');
